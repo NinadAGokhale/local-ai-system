@@ -4,8 +4,10 @@
 
 | Phase | Name | Duration (est.) | Dependencies |
 |-------|------|-----------------|--------------|
-| SWE1 | Local Model Setup & opencode Integration | 1-2 days | None |
+| SWE0 | GitHub + opencode MCP Setup | 1 hour | GitHub account |
+| SWE1 | Local Model Setup & opencode Integration | 1-2 days | SWE0 |
 | SWE2 | WhatsApp Bot & End-to-End Automation | 3-5 days | SWE1 |
+| SWE3 | Agent Architecture & GitHub Project Automation | 2-3 days | SWE0, SWE1 |
 
 ## 2. Model Analysis & Strategy
 
@@ -82,14 +84,83 @@
 
 ### 3.3 MCP Servers (planned)
 
-| Server | Purpose |
-|--------|---------|
-| `@anthropic/mcp-filesystem` | File read/write/search |
-| Local shell MCP | Command execution |
-| Custom WhatsApp MCP | Message send/receive (SWE2) |
-| macOS automation MCP | AppleScript, shortcuts |
+| Server | Type | Purpose | Phase |
+|--------|------|---------|-------|
+| **GitHub MCP** (remote) | Remote | GitHub Issues, Projects, Repos, PRs | SWE0 |
+| `@anthropic/mcp-filesystem` | Local | File read/write/search | SWE1 |
+| Local shell MCP | Local | Command execution | SWE1 |
+| macOS automation MCP | Local | AppleScript, shortcuts | SWE1 |
+| Custom WhatsApp MCP | Local | Message send/receive | SWE2 |
 
-## 4. Decision Log
+### 3.4 GitHub MCP Configuration (opencode.jsonc)
+
+```jsonc
+{
+  "mcp": {
+    "github": {
+      "type": "remote",
+      "command": ["node", "path/to/github-mcp-server"],
+      "enabled": true,
+      "environment": {
+        "GITHUB_TOKEN": "{env:GITHUB_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+Credentials needed from user:
+- GitHub account (create one at github.com if none)
+- GitHub Personal Access Token (classic) with scopes: `repo`, `project`, `issues`, `read:org`
+  - Create at: https://github.com/settings/tokens
+  - Store in shell profile: `export GITHUB_TOKEN="ghp_..."`
+  - Or use `gh auth login` for CLI-based auth
+
+## 4. GitHub Project Board Schema
+
+### 4.1 Board Structure
+
+```
+Project: "Local AI System" (GitHub Projects v2)
+├── Status: Backlog → To Do → In Progress → Review → Done
+├── Phase: SWE0 / SWE1 / SWE2 / SWE3 (Single Select)
+├── Persona: Architect / Coding / System / DevOps / Bridge (Single Select)
+├── Priority: P0 / P1 / P2 (Single Select)
+└── Agent: (text field — assigned agent name)
+```
+
+### 4.2 Task Lifecycle
+
+```
+User Input → Architect Agent
+  → Creates GitHub Issue with labels (phase, persona, priority)
+  → Issue auto-appears in "Backlog"
+  → Manual/auto-move to "To Do"
+  → Task Agent picks up → moves to "In Progress"
+  → Agent creates branch/PR → moves to "Review"
+  → PR merged → moves to "Done"
+```
+
+### 4.3 MCP Tools for Project Management
+
+| Tool Source | Tools Available |
+|-------------|-----------------|
+| GitHub MCP Server (remote) | `issues_read`, `issues_write`, `pull_request_read`, `pull_request_write` |
+| GitHub MCP `projects` toolset | List projects, get items, update item fields, add/remove items |
+| `Arclio/github-projects-mcp` (optional) | Project item CRUD, field management, board operations |
+
+## 5. Credentials & Accounts Checklist
+
+| Service | What's Needed | How to Get | Status |
+|---------|---------------|------------|--------|
+| **GitHub** | Free account | https://github.com/signup | ⏳ User action |
+| **GitHub PAT** | Token with `repo`, `project`, `issues` scopes | https://github.com/settings/tokens | ⏳ User action |
+| **Ollama** | Already installed | — | ✅ Done |
+| **opencode** | Already configured | — | ✅ Done |
+| **npm** | Already installed | — | ✅ Done |
+| **WhatsApp** | Phone number (already have) | — | ✅ Done |
+
+## 6. Decision Log
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
@@ -97,8 +168,13 @@
 | 2026-06-28 | Qwen 2.5 Coder 7B as primary local model | No reasoning issue, best code quality |
 | 2026-06-28 | Defer Qwen 3.5 reasoning fix to SWE1 | Need to test `streaming: false` at provider level |
 | 2026-06-28 | No proxy/bash scripts | User preference for clean config-only setup |
+| 2026-06-28 | **GitHub Projects** as project management tool | Free, native GitHub integration, official MCP server |
+| 2026-06-28 | **GitHub MCP Server (remote)** for agent-project bridge | Official, supports projects toolset, no Docker needed |
+| 2026-06-28 | **Architect Agent (Persona 1)** creates SYS/SWE from user input | Automates requirements decomposition |
+| 2026-06-28 | **5 Persona model** for agent specialization | Match model strength to task type |
+| 2026-06-28 | Tasks flow: GitHub Issue → Project Board → Agent picks up → Executes → Marks done | Clear traceability, async execution |
 
-## 5. Risk Register
+## 7. Risk Register
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
@@ -106,3 +182,6 @@
 | 16 GB RAM insufficient for dual model use | Medium | Medium | Load one model at a time |
 | WhatsApp API changes/bans | Low | High | Use WhatsApp Web JS as fallback |
 | MacBook goes to sleep | Medium | Medium | Use `caffeinate` or power management |
+| GitHub MCP token expires/revoked | Low | High | Document renewal process, use `gh` CLI fallback |
+| GitHub Projects API rate limits | Low | Medium | Batch updates, cache project state |
+| MCP context window consumption | High | Medium | Enable only needed MCP servers per agent persona |
