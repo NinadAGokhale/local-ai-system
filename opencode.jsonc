@@ -1,0 +1,44 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/deepseek-v4-flash-free",
+  "small_model": "opencode/deepseek-v4-flash-free",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": {
+        "baseURL": "http://localhost:11434/v1",
+        "headerTimeout": 180000,
+        "chunkTimeout": 180000,
+        "streaming": false
+      },
+      "models": {
+        "qwen3.5:4b": {
+          "name": "Qwen 3.5 4B"
+        },
+        "qwen3.5:9b": {
+          "name": "Qwen 3.5 9B"
+        },
+        "qwen2.5-coder:7b": {
+          "name": "Qwen 2.5 Coder 7B"
+        }
+      }
+    }
+  },
+  "mcp": {
+    "github": {
+      "type": "remote",
+      "command": ["npx", "-y", "@github/github-mcp-server"],
+      "enabled": true,
+      "environment": {
+        "GITHUB_TOKEN": "{env:GITHUB_TOKEN}"
+      }
+    },
+    "whatsapp": {
+      "type": "remote",
+      "command": ["python3", "whatsapp_mcp.py"],
+      "enabled": true,
+      "env": {}
+    }
+  }
+}

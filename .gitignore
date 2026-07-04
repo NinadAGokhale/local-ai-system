@@ -7,7 +7,7 @@ dist/
 build/
 
 # Node
-node_modules/
+bridge/node_modules/
 npm-debug.log*
 
 # macOS
@@ -16,8 +16,10 @@ npm-debug.log*
 *.swo
 
 # Local AI System
-swe2/logs/
-swe2/.wwebjs_auth/
+logs/
+.wwebjs_auth/
+outbox.jsonl
+.sessions.json
 
 # IDE
 .vscode/

@@ -2,85 +2,107 @@
 
 Control your MacBook via WhatsApp using local LLMs, opencode, and custom automation.
 
-## System Specs
+## Quick Start
 
-- **Hardware:** MacBook Pro 14" (2021), M1 Pro, 16 GB RAM
-- **OS:** macOS 26.0.1
-- **LLM Server:** Ollama 0.30.10
-- **AI Agent:** opencode 1.17.11
+```bash
+# 1. Start the web dashboard (single entry point)
+pip install flask
+python dashboard.py
+# Open http://localhost:5050
 
-## Local Models
-
-| Model | Size | Status | Use Case |
-|-------|------|--------|----------|
-| `qwen2.5-coder:7b` | 4.7 GB | ✅ Working | Primary coding tasks |
-| `qwen3.5:4b` | 3.4 GB | ✅ Fixed (streaming:false) | Lightweight reasoning |
-| `qwen3.5:9b` | 6.6 GB | ✅ Fixed (streaming:false) | Complex reasoning |
+# 2. Start the WhatsApp bridge (in another terminal)
+cd bridge
+npm install
+node client.js
+# Scan the QR code with WhatsApp → Linked Devices
+```
 
 ## Project Structure
 
 ```
 local-ai-system/
-├── README.md              # This file
-├── SYS1.md                # System Requirements & Architecture
-├── SYS2.md                # Technical Design & Implementation Plan
-├── SWE1.md                # Phase 1: Local Model Setup & opencode Integration
-├── SWE2.md                # Phase 2: WhatsApp Bot & End-to-End Automation
-├── SWE3.md                # Phase 3: Agent Architecture & Project Automation
-├── swe2/                  # WhatsApp bot code (Python + Node.js)
-├── swe3/                  # Agent skills, workflow, MCP scoping
-├── skills/                # opencode skill files (reference copy)
-├── reports/               # Execution reports for each task
-├── Modelfile.*            # Reference Modelfiles
-└── .gitignore
+├── dashboard.py              # Web dashboard (port 5050) — single entry point
+├── main.py                   # WhatsApp message handler
+├── message_logger.py         # Middleware that logs all messages
+├── command_parser.py         # Intent-based command parser
+├── response_formatter.py     # Formats responses for WhatsApp
+├── session_manager.py        # Per-user session & history
+├── opencode_wrapper.py       # opencode CLI subprocess wrapper
+├── whatsapp_mcp.py           # WhatsApp MCP server (for opencode agents)
+├── bridge/                   # WhatsApp Web client (Node.js)
+│   ├── client.js             # QR auth, receive/send messages
+│   ├── package.json
+│   └── power_manager.sh      # MacBook sleep prevention
+├── agent/                    # opencode agent skill files
+├── templates/                # Dashboard HTML templates
+├── reports/                  # Execution reports for each task
+├── outbox.jsonl              # Outgoing message queue (auto-created)
+├── requirements.txt
+└── README.md
 ```
 
-## Phases
+## System Architecture
 
-| Phase | Description | Status |
-|-------|-------------|--------|
-| SWE1 | Local model setup + opencode integration | ✅ Complete |
-| SWE2 | WhatsApp bot + end-to-end automation | ✅ Complete |
-| SWE3 | Agent architecture + project automation | ✅ Complete |
-| SWE4 | Logging middleware + web dashboard | ✅ Complete |
+```
+User (WhatsApp)
+    │
+    ▼
+bridge/client.js (Node.js) ←→ QR scan links your WhatsApp
+    │
+    ▼
+main.py → command_parser.py → opencode_wrapper.py → Ollama
+    │
+    ├── message_logger.py → logs/messages.jsonl
+    ├── session_manager.py → .sessions.json
+    └── response_formatter.py → reply to WhatsApp
+
+Web Browser → dashboard.py (:5050)
+    ├── Submit Requirement → GitHub Issue → Project Board
+    ├── Message Log viewer
+    └── System Status
+
+opencode agents → whatsapp_mcp.py (MCP Server)
+    ├── whatsapp_send tool
+    ├── get_status tool
+    ├── get_recent_messages tool
+    └── execute_opencode tool
+```
+
+## Local Models
+
+| Model | Use Case |
+|-------|----------|
+| `qwen2.5-coder:7b` | Primary coding tasks |
+| `qwen3.5:4b` | Lightweight reasoning |
+| `qwen3.5:9b` | Complex reasoning |
 
 ## Web Dashboard
 
-A web UI at `http://localhost:5050` for submitting requirements and viewing logs:
-
 ```bash
-cd swe2 && pip install flask && python dashboard.py
+python dashboard.py    # http://localhost:5050
 ```
 
-Features:
-- **Submit Requirement** — Creates a GitHub Issue and adds it to the project board
-- **Message Log** — Searchable history of all WhatsApp messages with intent, model, latency
+- **Submit Requirement** — Creates a GitHub Issue + adds to Project Board
+- **Message Log** — History of all messages with intent, model, latency
 - **System Status** — Live view of Ollama models, log counts, uptime
 
-## Quick Start
+## WhatsApp Bridge
 
-```bash
-# 1. Ensure Ollama is running
-ollama serve
+The bridge turns your WhatsApp number into a bot:
 
-# 2. Launch opencode
-opencode
+1. `cd bridge && npm install && node client.js`
+2. Scan QR code with WhatsApp (Settings → Linked Devices)
+3. Send messages to your own number
+4. Commands auto-detected: `code:`, `explain:`, `reason:`, `shell:`, `file:`, `search:`, `status`
 
-# 3. Switch to local model
-/model ollama/qwen2.5-coder:7b
+## MCP Servers
 
-# 4. Start working
-```
+| Server | Purpose |
+|--------|---------|
+| GitHub MCP | Issues, Projects, PRs for opencode agents |
+| WhatsApp MCP | Send/receive WhatsApp + system tools for agents |
 
 ## GitHub
 
 - **Issues/Board:** https://github.com/NinadAGokhale/local-ai-system/projects/1
-- **Branch:** `dev` for development, feature branches for individual tasks
-
-## Key Decisions
-
-- **Local-first:** All AI inference runs on-device
-- **No cloud deps:** No OpenAI/Anthropic API keys needed
-- **streaming:false:** Fixes Qwen 3.5 reasoning leak at provider level
-- **GitHub Projects:** Free project management with native git integration
-- **MCP-native:** All integrations use MCP servers for tool access
+- **Branch:** `dev` for development
