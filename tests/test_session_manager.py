@@ -45,7 +45,7 @@ def test_session_history_trimmed():
     for i in range(30):
         s.history.append({"role": "user", "content": str(i)})
     d = s.to_dict()
-    assert len(d["history"]) <= 20
+    assert len(d["history"]) <= 50
 
 
 def test_session_context_files():

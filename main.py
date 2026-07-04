@@ -49,9 +49,6 @@ def _handle_message(phone: str, text: str, model_override: Optional[str] = None)
     result = run_opencode(cleaned_text, model=model)
     formatted = format_response(result, full=phone == "web-ui")
 
-    session_manager.add_to_history(phone, "user", text)
-    session_manager.add_to_history(phone, "assistant", formatted)
-
     return formatted
 
 

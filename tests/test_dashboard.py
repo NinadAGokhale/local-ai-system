@@ -42,7 +42,6 @@ def test_api_status_keys():
     assert "ollama_models" in data
     assert "messages_logged" in data
     assert "sessions_active" in data
-    assert "bridge_online" in data
     assert "os" in data
     assert "host" in data
     assert "uptime" in data
@@ -55,7 +54,6 @@ def test_api_status_types():
     assert isinstance(data["ollama_models"], int)
     assert isinstance(data["messages_logged"], int)
     assert isinstance(data["sessions_active"], int)
-    assert isinstance(data["bridge_online"], bool)
     assert isinstance(data["os"], str)
 
 
@@ -67,8 +65,7 @@ def test_api_status_bridge_disabled(mock_run, mock_check):
 
     client = dashboard.app.test_client()
     resp = client.get("/api/status")
-    data = json.loads(resp.data)
-    assert data["bridge_online"] is False
+    assert resp.status_code == 200
 
 
 def test_api_history_logs_url_logged():

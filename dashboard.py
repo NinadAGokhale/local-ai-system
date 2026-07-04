@@ -58,9 +58,16 @@ def logout():
 @app.route("/")
 @login_required
 def index():
-    messages = get_recent_messages(limit=100, phone="web-ui")
-    requirements = get_recent_requirements(limit=20)
-    resp = make_response(render_template("dashboard.html", messages=messages, requirements=requirements))
+    phone = "web-ui"
+    s = session_manager.get_or_create(phone)
+    conversations = session_manager.get_conversations(phone)
+    resp = make_response(render_template(
+        "dashboard.html",
+        conversations=conversations,
+        current_history=s.history,
+        current_agent=s.current_agent,
+        current_skill=s.current_skill,
+    ))
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     resp.headers["Pragma"] = "no-cache"
     resp.headers["Expires"] = "0"
@@ -147,7 +154,29 @@ def api_status():
         "messages_logged": msg_count,
         "requirements_logged": req_count,
         "sessions_active": len(session_manager.sessions),
-        "bridge_online": False,  # WhatsApp bridge removed
+    })
+
+
+@app.route("/api/conversations", methods=["GET"])
+def api_conversations():
+    phone = request.args.get("phone", "web-ui")
+    convs = session_manager.get_conversations(phone)
+    return jsonify(convs)
+
+
+@app.route("/api/conversations", methods=["POST"])
+def api_switch_conversation():
+    data = request.get_json() or {}
+    phone = data.get("phone", "web-ui")
+    conv_id = data.get("conv_id")
+    if not conv_id:
+        return jsonify({"error": "Missing conv_id"}), 400
+    history = session_manager.switch_conversation(phone, conv_id)
+    s = session_manager.get_or_create(phone)
+    return jsonify({
+        "history": history,
+        "current_agent": s.current_agent,
+        "current_skill": s.current_skill,
     })
 
 
@@ -155,13 +184,13 @@ def api_status():
 def api_chat_new():
     data = request.get_json() or {}
     phone = data.get("phone", "web-ui")
-    from main import session_manager as main_sessions
-    main_sessions.clear_session(phone)
+    session_manager.new_conversation(phone)
     return jsonify({"status": "ok"})
 
 
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
+    import time
     data = request.get_json()
     if not data or "message" not in data:
         return jsonify({"error": "Missing 'message' field"}), 400
@@ -170,14 +199,47 @@ def api_chat():
     phone = data.get("phone", "web-ui")
     model_override = data.get("model")
 
+    s = session_manager.get_or_create(phone)
+
+    # Prepend agent/skill prefix if active
+    if s.current_agent:
+        message = f"agent: {s.current_agent}: {message}"
+    if s.current_skill:
+        if not s.current_agent:
+            message = f"skill: {s.current_skill}: {message}"
+
+    session_manager.add_to_history(phone, "user", data["message"])
+
+    start = time.time()
     try:
         if model_override:
             response = handle_message(phone, message, model_override=model_override)
         else:
             response = handle_message(phone, message)
+        latency_ms = (time.time() - start) * 1000
+        session_manager.add_to_history(phone, "bot", response, latency_ms=latency_ms)
         return jsonify({"response": response})
     except Exception as e:
+        session_manager.add_to_history(phone, "bot", f"Error: {e}", latency_ms=0)
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/agent", methods=["POST"])
+def api_set_agent():
+    data = request.get_json() or {}
+    phone = data.get("phone", "web-ui")
+    agent = data.get("agent") or None
+    session_manager.set_agent(phone, agent)
+    return jsonify({"ok": True, "current_agent": agent})
+
+
+@app.route("/api/skill", methods=["POST"])
+def api_set_skill():
+    data = request.get_json() or {}
+    phone = data.get("phone", "web-ui")
+    skill = data.get("skill") or None
+    session_manager.set_skill(phone, skill)
+    return jsonify({"ok": True, "current_skill": skill})
 
 
 @app.route("/api/models")
