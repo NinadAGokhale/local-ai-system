@@ -48,6 +48,11 @@ class SessionManager:
         session.history.append({"role": role, "content": content, "timestamp": __import__('time').time()})
         self._save()
 
+    def clear_session(self, phone: str):
+        """Reset a session to fresh state."""
+        self.sessions.pop(phone, None)
+        self._save()
+
     def set_model(self, phone: str, model: str):
         session = self.get_or_create(phone)
         session.current_model = model

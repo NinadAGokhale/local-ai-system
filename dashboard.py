@@ -121,6 +121,15 @@ def api_status():
     })
 
 
+@app.route("/api/chat/new", methods=["POST"])
+def api_chat_new():
+    data = request.get_json() or {}
+    phone = data.get("phone", "web-ui")
+    from main import session_manager as main_sessions
+    main_sessions.clear_session(phone)
+    return jsonify({"status": "ok"})
+
+
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
     data = request.get_json()
@@ -131,13 +140,11 @@ def api_chat():
     phone = data.get("phone", "web-ui")
     model_override = data.get("model")
 
-    # Set model preference if provided
-    if model_override:
-        from main import session_manager as main_sessions
-        main_sessions.set_model(phone, model_override)
-
     try:
-        response = handle_message(phone, message)
+        if model_override:
+            response = handle_message(phone, message, model_override=model_override)
+        else:
+            response = handle_message(phone, message)
         return jsonify({"response": response})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

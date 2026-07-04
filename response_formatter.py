@@ -4,18 +4,24 @@ SHORT_LIMIT = 1000
 MEDIUM_LIMIT = 10000
 
 
-def format_response(text: str) -> str:
-    """Format opencode output for WhatsApp display."""
+def format_response(text: str, full: bool = False) -> str:
+    """Format opencode output for display.
+
+    Args:
+        text: Raw response text.
+        full: If True, return the full response without truncation (for web UI).
+    """
     if not text:
         return "No response"
 
     # Remove ANSI codes
     text = strip_ansi(text)
-
-    # Format code blocks for WhatsApp readability
     text = format_code_blocks(text)
 
-    # Truncate based on length
+    if full:
+        return text
+
+    # Truncate for WhatsApp (messages have size limits)
     if len(text) <= SHORT_LIMIT:
         return text
     elif len(text) <= MEDIUM_LIMIT:

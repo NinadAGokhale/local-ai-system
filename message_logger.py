@@ -31,7 +31,7 @@ def log_message(
         "raw_message": raw_message,
         "parsed_intent": parsed_intent,
         "model": model,
-        "response_preview": response[:200],
+        "response_preview": response[:5000],
         "response_length": len(response),
         "latency_ms": round(latency_ms, 2),
         "error": error,
@@ -99,7 +99,7 @@ class MessageMiddleware:
     def __init__(self, handler_func):
         self.handler = handler_func
 
-    def __call__(self, phone: str, text: str):
+    def __call__(self, phone: str, text: str, **kwargs):
         import command_parser
         start = time.time()
         error = None
@@ -107,8 +107,11 @@ class MessageMiddleware:
 
         cmd_type, cleaned, model = command_parser.parse_command(text)
 
+        # Use model override from kwargs if provided (e.g., web UI dropdown)
+        model = kwargs.get("model_override") or model
+
         try:
-            result = self.handler(phone, text)
+            result = self.handler(phone, text, **kwargs)
         except Exception as e:
             error = str(e)
             result = f"Error: {error}"

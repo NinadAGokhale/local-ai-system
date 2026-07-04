@@ -3,6 +3,7 @@
 
 import sys
 import os
+from typing import Optional
 
 from opencode_wrapper import run_opencode, run_agent
 from command_parser import parse_command, CommandType, AGENT_ALIASES
@@ -13,7 +14,7 @@ from message_logger import MessageMiddleware, log_requirement
 session_manager = SessionManager()
 
 
-def _handle_message(phone: str, text: str) -> str:
+def _handle_message(phone: str, text: str, model_override: Optional[str] = None) -> str:
     """Process an incoming WhatsApp message (internal, no logging)."""
     session = session_manager.get_or_create(phone)
     session.last_command = text
@@ -35,14 +36,19 @@ def _handle_message(phone: str, text: str) -> str:
     if cmd_type == CommandType.AGENT:
         return execute_agent(cleaned_text)
 
-    if model is None:
-        model = session.current_model
-    else:
+    # Use model_override if provided (e.g., from web UI dropdown)
+    if model_override is not None:
+        model = model_override
         session_manager.set_model(phone, model)
         session.current_model = model
+    elif model is not None:
+        session_manager.set_model(phone, model)
+        session.current_model = model
+    else:
+        model = session.current_model
 
     result = run_opencode(cleaned_text, model=model)
-    formatted = format_response(result)
+    formatted = format_response(result, full=phone == "web-ui")
 
     session_manager.add_to_history(phone, "user", text)
     session_manager.add_to_history(phone, "assistant", formatted)
