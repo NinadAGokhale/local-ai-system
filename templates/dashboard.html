@@ -75,6 +75,8 @@
             flex: 1;
             overflow-y: auto;
             padding: 12px;
+            display: flex;
+            flex-direction: column;
         }
         .model-group { margin-bottom: 18px; }
         .model-group label {
@@ -154,6 +156,34 @@
             text-decoration: none;
         }
         .sidebar-hint a:hover { text-decoration: underline; }
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .user-badge {
+            font-size: 10px;
+            color: var(--text-muted);
+            background: var(--surface-2);
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .logout-link {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        .logout-link:hover {
+            color: #ef4444;
+            background: rgba(239,68,68,0.1);
+        }
         .persona-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -206,6 +236,15 @@
         .chat-header .actions button:hover {
             background: var(--surface-2);
             color: var(--text);
+        }
+        .chat-header .actions .logout-btn {
+            color: var(--text-muted);
+            font-size: 15px;
+            padding: 5px 8px;
+        }
+        .chat-header .actions .logout-btn:hover {
+            color: #ef4444;
+            border-color: #ef4444;
         }
 
         .messages {
@@ -429,6 +468,10 @@
                 <span class="hint-icon">⌘</span>
                 <span>Browse all agents, commands &amp; skills in <a href="#" onclick="toggleCatalogue(); return false;">Catalogue</a></span>
             </div>
+            <div class="sidebar-footer">
+                <span class="user-badge">user</span>
+                <a href="/logout" class="logout-link">Logout</a>
+            </div>
         </div>
     </div>
 
@@ -439,6 +482,7 @@
             <div class="actions">
                 <button onclick="toggleCatalogue()">Catalogue</button>
                 <button onclick="newChat()">New Chat</button>
+                <button onclick="window.location.href='/logout'" class="logout-btn" title="Logout">⇥</button>
             </div>
         </div>
 
