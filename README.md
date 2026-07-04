@@ -42,6 +42,20 @@ local-ai-system/
 | SWE1 | Local model setup + opencode integration | ✅ Complete |
 | SWE2 | WhatsApp bot + end-to-end automation | ✅ Complete |
 | SWE3 | Agent architecture + project automation | ✅ Complete |
+| SWE4 | Logging middleware + web dashboard | ✅ Complete |
+
+## Web Dashboard
+
+A web UI at `http://localhost:5050` for submitting requirements and viewing logs:
+
+```bash
+cd swe2 && pip install flask && python dashboard.py
+```
+
+Features:
+- **Submit Requirement** — Creates a GitHub Issue and adds it to the project board
+- **Message Log** — Searchable history of all WhatsApp messages with intent, model, latency
+- **System Status** — Live view of Ollama models, log counts, uptime
 
 ## Quick Start
 
