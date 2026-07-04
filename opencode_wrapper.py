@@ -165,8 +165,33 @@ def _try_parse_tool_call(line: str) -> Optional[dict]:
     return None
 
 
-# Backward-compatible alias
-run_opencode = run_ollama
+def run_opencode_cli(command: str, model: str = DEFAULT_MODEL) -> str:
+    """Run opencode CLI directly with --model (for cloud models like opencode/deepseek-*)."""
+    try:
+        proc = subprocess.run(
+            ["opencode", "run", "--model", model, "--auto", command],
+            capture_output=True,
+            text=True,
+            timeout=TIMEOUT,
+        )
+        output = proc.stdout or proc.stderr
+        return strip_ansi(output.strip() or "No response")
+    except subprocess.TimeoutExpired:
+        return f"Error: opencode timed out after {TIMEOUT}s"
+    except FileNotFoundError:
+        return "Error: opencode CLI not found"
+    except Exception as e:
+        return f"Error: {e}"
+
+
+def run_opencode(command: str, model: str = DEFAULT_MODEL) -> str:
+    """Route to appropriate backend based on model prefix.
+    ollama/* → direct Ollama API (fast, no tools)
+    opencode/* → opencode CLI (skills + tools available)
+    """
+    if model.startswith("opencode/"):
+        return run_opencode_cli(command, model)
+    return run_ollama(command, model)
 
 
 def strip_ansi(text: str) -> str:

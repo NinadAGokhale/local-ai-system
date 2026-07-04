@@ -147,14 +147,22 @@ def api_models():
             ["ollama", "list"],
             capture_output=True, text=True, timeout=10
         )
-        models = []
+        ollama_models = []
         for line in result.stdout.strip().split("\n")[1:]:
             parts = line.split()
             if parts:
-                models.append(parts[0])
-        return jsonify({"models": models})
+                ollama_models.append(parts[0])
     except Exception as e:
-        return jsonify({"models": [], "error": str(e)})
+        ollama_models = []
+
+    opencode_models = [
+        {"id": "opencode/deepseek-v4-flash-free", "name": "DeepSeek V4 Flash (opencode cloud)"},
+    ]
+
+    return jsonify({
+        "ollama_models": ollama_models,
+        "opencode_models": opencode_models,
+    })
 
 
 def create_github_issue(text: str) -> str:

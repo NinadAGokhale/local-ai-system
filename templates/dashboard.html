@@ -376,11 +376,7 @@
         <div class="sidebar-body">
             <div class="model-group">
                 <label>Model</label>
-                <select id="model-select">
-                    <option value="ollama/qwen2.5-coder:7b">qwen2.5-coder:7b</option>
-                    <option value="ollama/qwen3.5:4b">qwen3.5:4b</option>
-                    <option value="ollama/qwen3.5:9b">qwen3.5:9b</option>
-                </select>
+                <select id="model-select"></select>
             </div>
 
             <div class="model-group">
@@ -534,7 +530,7 @@
                 const data = await r.json();
                 hideTyping();
                 if (data.response) {
-                    const modelName = selectedModel.replace('ollama/', '');
+                    const modelName = selectedModel.replace(/^(ollama|opencode)\//, '');
                     addMessage('bot', data.response, {model: modelName});
                 } else if (data.error) {
                     addMessage('bot', `Error: ${data.error}`, {isError: true});
@@ -624,13 +620,6 @@
                 const r = await fetch('/api/status');
                 const s = await r.json();
                 document.getElementById('st-models').textContent = `${s.ollama_models} models`;
-                document.getElementById('st-msgs').textContent = s.messages_logged;
-                document.getElementById('st-sessions').textContent = s.sessions_active;
-                document.getElementById('st-uptime').textContent = (s.uptime || '').split('  ')[0] || s.uptime;
-
-                const bridgeEl = document.getElementById('st-bridge');
-                bridgeEl.textContent = s.bridge_online ? 'Online' : 'Offline';
-                bridgeEl.className = `val ${s.bridge_online ? 'online' : 'offline'}`;
             } catch(e) {
                 console.error('Status error:', e);
             }
@@ -641,12 +630,21 @@
                 const r = await fetch('/api/models');
                 const data = await r.json();
                 const select = document.getElementById('model-select');
-                if (data.models && data.models.length) {
-                    const current = select.value;
-                    select.innerHTML = data.models.map(m =>
+                const current = select.value;
+                let html = '<optgroup label="└ Ollama (local)">';
+                if (data.ollama_models && data.ollama_models.length) {
+                    html += data.ollama_models.map(m =>
                         `<option value="ollama/${m}" ${`ollama/${m}` === current ? 'selected' : ''}>${m}</option>`
                     ).join('');
                 }
+                html += '</optgroup><optgroup label="└ Opencode (cloud)">';
+                if (data.opencode_models && data.opencode_models.length) {
+                    html += data.opencode_models.map(m =>
+                        `<option value="${m.id}" ${m.id === current ? 'selected' : ''}>${m.name}</option>`
+                    ).join('');
+                }
+                html += '</optgroup>';
+                select.innerHTML = html;
             } catch(e) {}
         }
 

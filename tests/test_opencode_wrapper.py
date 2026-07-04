@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 sys.path.insert(0, '.')
 
 from opencode_wrapper import (
-    run_ollama, run_agent, run_opencode, strip_ansi,
+    run_ollama, run_agent, run_opencode, run_opencode_cli, strip_ansi,
     DEFAULT_MODEL, _strip_prefix, _execute_tool_calls, NO_TOOLS_PROMPT
 )
 
@@ -196,10 +196,12 @@ def test_execute_tool_calls_empty():
     assert result == ""
 
 
-def test_run_opencode_is_alias():
-    assert run_opencode is run_ollama
+def test_run_opencode_is_router():
+    assert run_opencode is not run_ollama
+    assert callable(run_opencode)
 
 
 def test_aliases():
     assert run_ollama is not None
     assert run_agent is not None
+    assert run_opencode_cli is not None
