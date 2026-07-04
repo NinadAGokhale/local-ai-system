@@ -1,199 +1,110 @@
-# SWE2 — Phase 2: WhatsApp Bot & End-to-End Automation
+# SWE2 — Phase 2: Web Chat Interface & End-to-End Automation
 
 ## Objective
 
-Build a WhatsApp bot that bridges WhatsApp messages to opencode, allowing the user to control their MacBook remotely via WhatsApp.
+Build a fully local chat interface (web UI) that controls MacBook via LLMs, opencode agents, and custom automation. No external dependencies — all inference on-device via Ollama.
 
 ## Architecture
 
 ```
-WhatsApp User
-    │
-    ▼
-┌─────────────────────┐
-│  WhatsApp Bot        │
-│  (Python/Node)       │
-│  - whatsapp-web.js   │
-│  - Command parser     │
-│  - Session manager    │
-└──────────┬──────────┘
-           │ IPC / localhost
-           ▼
-┌─────────────────────┐
-│  opencode CLI        │
-│  - Run with model    │
-│  - Skills context    │
-│  - MCP tools         │
-└──────────┬──────────┘
-           │ result
-           ▼
-┌─────────────────────┐
-│  Response Formatter  │
-│  - Strip markdown    │
-│  - Truncate long     │
-│  - Format for chat   │
-└─────────────────────┘
+User Browser (localhost:5050)
+         │
+         ▼
+    Flask Web UI (dashboard.py)
+         │
+         ├── /api/chat → handle_message()
+         ├── /api/logs → message_logger
+         ├── /api/status → system info
+         ├── /api/models → Ollama list
+         └── /api/chat/new → session reset
+                  │
+          ┌───────┴────────┐
+          ▼                ▼
+   run_ollama()        run_agent()
+   (Ollama HTTP API)   (opencode + tool exec)
+          │                │
+          ▼                ▼
+   Ollama models     opencode agents
+   (no tools)         (skills + tools)
 ```
 
-## Task List
+## Components
 
-### Task 2.1: Setup WhatsApp Bridge
+### Web UI (dashboard.py + dashboard.html)
+- Flask server on port 5050
+- ChatGPT-style chat with message bubbles
+- Model dropdown (live from Ollama API)
+- "New Chat" button resets server session
+- Typing indicator during processing
+- System status panel
 
-**Option A: whatsapp-web.js (Recommended)**
-```bash
-npm install whatsapp-web.js qrcode-terminal
-```
+### Message Handler (main.py)
+- `handle_message(phone, message)` — core router
+- Routes through command_parser → run_ollama or run_agent
+- Session-aware (per-user history)
 
-- Uses WhatsApp Web protocol
-- Requires QR scan once (persists session)
-- Can run headless
-- Handles reconnection
+### Command Parser (command_parser.py)
+| Pattern | Routes to | Backend |
+|---------|-----------|---------|
+| `code:` | run_ollama(qwen2.5-coder:7b) | Ollama |
+| `explain:` | run_ollama(qwen3.5:4b) | Ollama |
+| `reason:` | run_ollama(qwen3.5:9b) | Ollama |
+| `shell:` | execute_shell() | subprocess |
+| `file:` | execute_file_op() | Python I/O |
+| `search:` | execute_search() | mdfind |
+| `status` | get_status() | platform |
+| `agent:` | run_agent(name) | opencode + tools |
 
-**Option B: WhatsApp Business API**
-- Requires Meta business account
-- More reliable but more setup
-- Not recommended for local dev
+### Dual-Mode Backend (opencode_wrapper.py)
+- `run_ollama(command, model)` — direct Ollama HTTP API, no tool execution
+- `run_agent(agent_name, command)` — opencode run with agent + local tool execution
 
-**Implementation:**
-```javascript
-// whatsapp-bridge.js
-const { Client, LocalAuth } = require('whatsapp-web.js');
+### Message Logger (message_logger.py)
+- Middleware wrapping handle_message
+- Logs to `logs/messages.jsonl` (JSONL format)
+- Fields: timestamp, phone, message, intent, model, preview, latency, error
 
-const client = new Client({
-    authStrategy: new LocalAuth(),
-    puppeteer: { headless: true }
-});
+### Session Manager (session_manager.py)
+- Per-phone/user sessions
+- History with configurable max length
+- JSON persistence
+- clear_session() for "New Chat"
 
-client.on('message', async (msg) => {
-    const command = msg.body;
-    const response = await executeOpenCode(command);
-    msg.reply(response);
-});
-```
+### Response Formatter (response_formatter.py)
+- `format_response(text, full=True)` — no truncation for web UI
+- Preserves markdown formatting
+- Handles code blocks
 
-### Task 2.2: opencode CLI Wrapper
+## Files
 
-Create a wrapper that:
-1. Accepts text command
-2. Runs opencode with specified model
-3. Captures output
-4. Returns response
-
-```python
-# opencode_wrapper.py
-import subprocess
-import json
-import tempfile
-
-def run_opencode(command: str, model: str = "ollama/qwen2.5-coder:7b") -> str:
-    """Run opencode with a command and return the response text."""
-    with tempfile.NamedTemporaryFile(suffix='.md', mode='w') as f:
-        f.write(f"# Task\n{command}\n")
-        f.flush()
-        result = subprocess.run(
-            ["opencode", "run", "--model", model, command],
-            capture_output=True, text=True, timeout=120
-        )
-        return result.stdout or result.stderr
-```
-
-### Task 2.3: Command Parser & Router
-
-Parse incoming WhatsApp messages to determine intent:
-
-| Command Pattern | Action | Model |
-|----------------|--------|-------|
-| `code: <task>` | Write/analyze code | `qwen2.5-coder:7b` |
-| `explain: <topic>` | General explanation | `qwen3.5:4b-instruct` |
-| `reason: <problem>` | Complex reasoning | `qwen3.5:9b-instruct` |
-| `shell: <command>` | Run shell command | System (no LLM) |
-| `file: <path>` | Read/write file | System (no LLM) |
-| `search: <query>` | File search | System (no LLM) |
-| `status` | System status | System (no LLM) |
-
-### Task 2.4: System Action Skills
-
-Create opencode skills for system-level actions:
-
-**macos-control skill:**
-- Launch/kill applications
-- Run AppleScript
-- Control windows
-- Get system info
-- File operations
-- Clipboard operations
-
-**development skill:**
-- Git operations
-- Project scaffolding
-- Code review
-- Test running
-- Build/deploy
-
-**media skill:**
-- Screenshot capture
-- Screen recording
-- Audio recording
-- Play/stop media
-
-### Task 2.5: Response Formatting
-
-WhatsApp has message length limits (~64K for text). Format responses:
-
-1. **Short answers** (< 1000 chars): Send directly
-2. **Medium answers** (1000-10000 chars): Truncate with "..." and offer "Read more" option
-3. **Code blocks**: Format with ``` for WhatsApp readability
-4. **Errors**: Plain text with error code
-
-### Task 2.6: Session & State Management
-
-Maintain conversation context:
-
-```python
-# Simple session store
-sessions = {
-    "user_phone": {
-        "history": [...],
-        "current_model": "ollama/qwen2.5-coder:7b",
-        "last_command": "...",
-        "context_files": [...]
-    }
-}
-```
-
-### Task 2.7: MacBook Power Management
-
-Prevent sleep during operation:
-
-```bash
-# Keep MacBook awake
-caffeinate -dimsu -t 3600 &
-
-# Or use a launchd plist
-# ~/Library/LaunchAgents/com.user.keepawake.plist
-```
+| File | Purpose |
+|------|---------|
+| `dashboard.py` | Flask web server (port 5050) |
+| `main.py` | Core message handler module |
+| `opencode_wrapper.py` | Dual-mode: Ollama direct + opencode agent |
+| `command_parser.py` | Intent-based command parser |
+| `response_formatter.py` | Response formatting |
+| `session_manager.py` | Per-user session persistence |
+| `message_logger.py` | JSONL logging middleware |
+| `templates/dashboard.html` | Chat UI template |
 
 ## Verification Checklist
 
-- [ ] WhatsApp bot receives messages
-- [ ] Commands are parsed and routed correctly
-- [ ] opencode executes tasks with correct model
-- [ ] Responses are formatted and sent back
-- [ ] Code generation tasks produce valid code
-- [ ] Shell commands execute and return output
-- [ ] File operations work (read/write/search)
-- [ ] Session history is maintained
-- [ ] MacBook stays awake during operations
-- [ ] Auto-reconnect on connection loss
+- [ ] Web UI loads at http://localhost:5050
+- [ ] Chat messages send and receive responses
+- [ ] Model dropdown lists all Ollama models
+- [ ] Model override works (takes precedence over command prefix)
+- [ ] `code:` prefix routes to code model
+- [ ] `explain:` prefix routes to explain model
+- [ ] `reason:` prefix routes to reasoning model
+- [ ] `shell:` executes terminal commands
+- [ ] `file:` reads/writes files
+- [ ] `search:` runs Spotlight search
+- [ ] `status` shows system info
+- [ ] `agent:` routes through opencode with tool execution
+- [ ] "New Chat" resets session
+- [ ] System status panel shows bridge/model/log info
+- [ ] Session history persists across page refreshes
+- [ ] Typing indicator shows during processing
 - [ ] Error handling for long-running tasks
-
-## Future Enhancements (Post-SWE2)
-
-| Feature | Description |
-|---------|-------------|
-| Voice messages | Transcribe audio to text for commands |
-| Image analysis | Send screenshots, get descriptions |
-| Scheduled tasks | "Remind me at 3pm to..." |
-| Multi-user | Support multiple authorized phone numbers |
-| Status page | Web dashboard for system status |
-| Backup/restore | Automated config backup to GitHub |
+- [ ] All unit tests pass (73+)

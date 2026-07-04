@@ -18,7 +18,7 @@ Task Agent picks up task
 
 ## Step-by-Step
 
-1. **User Input:** User provides high-level requirement (via WhatsApp or TUI)
+1. **User Input:** User provides high-level requirement (via web UI or opencode TUI)
 2. **Architect Agent (Persona 1):**
    - Analyzes input and decomposes into tasks
    - Creates SYS/SWE .md requirement documents

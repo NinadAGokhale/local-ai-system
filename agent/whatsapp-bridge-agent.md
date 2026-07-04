@@ -1,26 +1,17 @@
 ---
-name: whatsapp-bridge-agent
-description: WhatsApp Bridge agent — translates WhatsApp messages to opencode tasks
+name: bridge-agent
+description: External connection agent — handles MCP-based integrations (reserved for future use)
 ---
 
-You are the WhatsApp Bridge Agent (Persona 5). You translate incoming WhatsApp messages into tasks for other agents.
+# Bridge Agent
 
-## Your Role
+**Status:** Deprecated. The WhatsApp bridge has been removed in favor of a web-only architecture.
 
-1. **Message Parsing:** Analyze incoming WhatsApp messages for intent
-2. **Task Routing:** Route messages to the correct agent persona
-3. **Response Formatting:** Format responses for WhatsApp display limits
-4. **Session Management:** Maintain conversation context per user
+This agent was previously responsible for translating external messaging (WhatsApp) into opencode tasks. In the current architecture, the web UI at `localhost:5050` is the sole interface.
 
-## MCP Tools Available
-- WhatsApp (custom MCP — send/receive messages)
-- opencode CLI (execute commands)
-- Filesystem (read/write session files)
+## Future Use
 
-## Workflow
-1. Receive WhatsApp message
-2. Parse intent (code/explain/reason/shell/file/status)
-3. Route to correct model and agent
-4. Execute via opencode CLI
-5. Format response for WhatsApp (truncate, markdown cleanup)
-6. Send response back to user
+If an external bridge is needed in the future (e.g., WhatsApp, Telegram, Slack), it should be implemented as:
+1. An MCP server in `opencode.jsonc`
+2. A new agent persona with MCP tool access
+3. A dedicated handler in the web UI or standalone process

@@ -1,71 +1,58 @@
-# Local AI System — WhatsApp-Controlled MacBook Automation
+# Saratthya — Local AI System (Web-controlled MacBook Automation)
 
-Control your MacBook via WhatsApp using local LLMs, opencode, and custom automation.
+Control your MacBook via a local web chat UI using local LLMs, opencode, and custom automation.
 
 ## Quick Start
 
 ```bash
-# 1. Start the web dashboard (single entry point)
+# Start the web dashboard (single entry point)
 pip install flask
 python dashboard.py
 # Open http://localhost:5050
-
-# 2. Start the WhatsApp bridge (in another terminal)
-cd bridge
-npm install
-node client.js
-# Scan the QR code with WhatsApp → Linked Devices
 ```
 
 ## Project Structure
 
 ```
 local-ai-system/
-├── dashboard.py              # Web dashboard (port 5050) — single entry point
-├── main.py                   # WhatsApp message handler
-├── message_logger.py         # Middleware that logs all messages
+├── dashboard.py              # Flask web server (port 5050) — entry point
+├── main.py                   # Core message handler (imported by dashboard)
+├── opencode_wrapper.py       # Dual-mode: Ollama direct + opencode agent
 ├── command_parser.py         # Intent-based command parser
-├── response_formatter.py     # Formats responses for WhatsApp
+├── response_formatter.py     # Formats responses (full mode for web UI)
 ├── session_manager.py        # Per-user session & history
-├── opencode_wrapper.py       # opencode CLI subprocess wrapper
-├── whatsapp_mcp.py           # WhatsApp MCP server (for opencode agents)
-├── bridge/                   # WhatsApp Web client (Node.js)
-│   ├── client.js             # QR auth, receive/send messages
-│   ├── package.json
-│   └── power_manager.sh      # MacBook sleep prevention
-├── agent/                    # opencode agent skill files
-├── templates/                # Dashboard HTML templates
-├── reports/                  # Execution reports for each task
-├── outbox.jsonl              # Outgoing message queue (auto-created)
-├── requirements.txt
+├── message_logger.py         # Middleware that logs all messages
+├── templates/dashboard.html  # Chat UI (ChatGPT-style)
+├── agent/                    # opencode agent/skill definitions
+│   ├── sdlc-skills/          # Skill instruction files
+│   └── *-agent.md            # Agent persona definitions
+├── tests/                    # Unit tests (73+ passing)
+├── reports/                  # SWE execution reports
 └── README.md
 ```
 
 ## System Architecture
 
 ```
-User (WhatsApp)
-    │
-    ▼
-bridge/client.js (Node.js) ←→ QR scan links your WhatsApp
-    │
-    ▼
-main.py → command_parser.py → opencode_wrapper.py → Ollama
-    │
-    ├── message_logger.py → logs/messages.jsonl
-    ├── session_manager.py → .sessions.json
-    └── response_formatter.py → reply to WhatsApp
-
-Web Browser → dashboard.py (:5050)
-    ├── Submit Requirement → GitHub Issue → Project Board
-    ├── Message Log viewer
-    └── System Status
-
-opencode agents → whatsapp_mcp.py (MCP Server)
-    ├── whatsapp_send tool
-    ├── get_status tool
-    ├── get_recent_messages tool
-    └── execute_opencode tool
+User Browser (localhost:5050)
+         │
+         ▼
+    Flask Web UI (dashboard.py)
+         │
+         ├── /api/chat → handle_message() → command_parser → run_ollama/run_agent
+         ├── /api/logs → message_logger (JSONL)
+         ├── /api/status → system info
+         ├── /api/models → Ollama model list
+         └── /api/chat/new → session reset
+                  │
+          ┌───────┴────────┐
+          ▼                ▼
+   run_ollama()        run_agent()
+   (Ollama HTTP API)   (opencode + tool execution)
+          │                │
+          ▼                ▼
+   Ollama models     opencode agents
+   (local, no tools)  (with skills + tools)
 ```
 
 ## Local Models
@@ -76,31 +63,35 @@ opencode agents → whatsapp_mcp.py (MCP Server)
 | `qwen3.5:4b` | Lightweight reasoning |
 | `qwen3.5:9b` | Complex reasoning |
 
-## Web Dashboard
+## Chat Interface
 
 ```bash
 python dashboard.py    # http://localhost:5050
 ```
 
-- **Submit Requirement** — Creates a GitHub Issue + adds to Project Board
-- **Message Log** — History of all messages with intent, model, latency
-- **System Status** — Live view of Ollama models, log counts, uptime
+- **ChatGPT-style UI** with message bubbles, model dropdown, typing indicator
+- **Model selector** — choose any local Ollama model
+- **Command prefixes** — `code:`, `explain:`, `reason:`, `shell:`, `file:`, `search:`, `status`, `agent:`
+- **Agent persona routing** — `agent:<name>` runs through opencode with specified agent + tool execution
+- **New Chat** — resets session
+- **Message Log** — history with intent, model, latency
 
-## WhatsApp Bridge
+## Agent Personas
 
-The bridge turns your WhatsApp number into a bot:
-
-1. `cd bridge && npm install && node client.js`
-2. Scan QR code with WhatsApp (Settings → Linked Devices)
-3. Send messages to your own number
-4. Commands auto-detected: `code:`, `explain:`, `reason:`, `shell:`, `file:`, `search:`, `status`
-
-## MCP Servers
-
-| Server | Purpose |
-|--------|---------|
-| GitHub MCP | Issues, Projects, PRs for opencode agents |
-| WhatsApp MCP | Send/receive WhatsApp + system tools for agents |
+| Prefix | Agent | Backend |
+|--------|-------|---------|
+| `agent:engineer` | Engineer | opencode + tools |
+| `agent:architect` | Architect | opencode + tools |
+| `agent:frontend` | Frontend | opencode + tools |
+| `agent:backend` | Backend | opencode + tools |
+| `agent:devops` | DevOps | opencode + tools |
+| `agent:qa` | QA | opencode + tools |
+| `agent:product` | Product | opencode + tools |
+| `agent:project` | Project | opencode + tools |
+| `agent:cto` | CTO | opencode + tools |
+| `agent:growth` | Growth | opencode + tools |
+| `agent:founder` | Founder | opencode + tools |
+| `agent:fullstack` | Fullstack | opencode + tools |
 
 ## GitHub
 

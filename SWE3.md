@@ -34,7 +34,7 @@ Set up the project management layer: GitHub Projects board + GitHub MCP Server i
 
 ```bash
 # 1. Create repo via gh CLI (or manually on GitHub)
-gh repo create local-ai-system --public --description "Local AI System - WhatsApp-controlled MacBook automation" --clone
+gh repo create local-ai-system --public --description "Saratthya: Local AI System — Web-controlled MacBook automation" --clone
 
 # Or create on github.com first, then:
 cd ~/Desktop/local-ai-system
@@ -58,7 +58,7 @@ git push -u origin main
 # Create issues for each SWE phase
 gh issue create --title "SWE0: GitHub + opencode MCP Setup" --body "See SWE3.md for details" --label "phase:swe0"
 gh issue create --title "SWE1: Local Model Setup & opencode Integration" --body "See SWE1.md" --label "phase:swe1"
-gh issue create --title "SWE2: WhatsApp Bot & E2E Automation" --body "See SWE2.md" --label "phase:swe2"
+gh issue create --title "SWE2: Web Chat Interface & E2E Automation" --body "See SWE2.md" --label "phase:swe2"
 gh issue create --title "SWE3: Agent Architecture & Project Automation" --body "See SWE3.md" --label "phase:swe3"
 ```
 
@@ -172,11 +172,7 @@ Each task agent is a combination of:
 - Skill: devops-agent.md
 - Handles: CI/CD, git operations, deployment
 
-**Persona 5: WhatsApp Bridge Agent**
-- Model: `ollama/qwen3.5:4b-instruct`
-- MCP: WhatsApp (custom), opencode CLI
-- Skill: whatsapp-bridge.md
-- Handles: Message parsing, response formatting
+**⚠ Persona 5: REMOVED** — WhatsApp Bridge Agent was removed in the web-only architecture migration (Jul 2026)
 
 ### Task 3.6: Task Execution Workflow
 
