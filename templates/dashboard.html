@@ -96,6 +96,23 @@
             outline: none;
         }
         .model-group select:focus { border-color: var(--orange); }
+        .model-group select optgroup {
+            background: var(--surface);
+            color: var(--text-muted);
+            font-size: 11px;
+            padding: 4px 6px;
+        }
+        .model-group select option {
+            background: var(--surface-2);
+            color: var(--text);
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+        .model-group select option:hover,
+        .model-group select option:checked {
+            background: var(--orange);
+            color: #fff;
+        }
         .stat-item {
             display: flex;
             justify-content: space-between;
@@ -240,6 +257,7 @@
             border: 1px solid var(--border);
             border-radius: 12px;
             margin-right: auto;
+            margin-top: 8px;
             max-width: 80%;
             font-size: 13px;
             color: var(--text-dim);
@@ -380,9 +398,8 @@
             </div>
 
             <div class="model-group">
-                <label>System Status</label>
+                <label>Status</label>
                 <div id="status-content">
-                    <div class="stat-item"><span class="lbl">Bridge</span><span class="val offline" id="st-bridge">Checking...</span></div>
                     <div class="stat-item"><span class="lbl">Ollama</span><span class="val" id="st-models">-</span></div>
                     <div class="stat-item"><span class="lbl">Messages</span><span class="val" id="st-msgs">-</span></div>
                     <div class="stat-item"><span class="lbl">Sessions</span><span class="val" id="st-sessions">-</span></div>
@@ -391,17 +408,20 @@
             </div>
 
             <div class="persona-section">
-                <h3>Personas (prefixes)</h3>
-                <div class="persona-grid">
+                <h3>Commands</h3>
+                <div class="persona-grid" id="persona-grid">
                     <div class="persona-chip"><span class="pfx">code:</span> coder</div>
                     <div class="persona-chip"><span class="pfx">explain:</span> teacher</div>
                     <div class="persona-chip"><span class="pfx">reason:</span> analyst</div>
                     <div class="persona-chip"><span class="pfx">shell:</span> terminal</div>
                     <div class="persona-chip"><span class="pfx">file:</span> reader</div>
                     <div class="persona-chip"><span class="pfx">search:</span> finder</div>
-                    <div class="persona-chip"><span class="pfx">agent:</span> &lt;name&gt;</div>
                     <div class="persona-chip"><span class="pfx">status:</span> info</div>
                 </div>
+            </div>
+            <div class="persona-section">
+                <h3>Agents</h3>
+                <div class="persona-grid" id="agent-grid"></div>
             </div>
         </div>
     </div>
@@ -441,6 +461,7 @@
     <script>
         let chatHistory = [];
         let lastMsgCount = 0;
+        let freshChat = false;
 
         function addMessage(role, text, meta) {
             const container = document.getElementById('messages');
@@ -480,8 +501,13 @@
             }
 
             container.appendChild(group);
-            container.scrollTop = container.scrollHeight;
+            scrollToBottom();
             chatHistory.push({role, text, meta});
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('messages');
+            requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
         }
 
         function showTyping() {
@@ -498,12 +524,13 @@
             } else {
                 typing.classList.add('active');
             }
-            container.scrollTop = container.scrollHeight;
+            scrollToBottom();
         }
 
         function hideTyping() {
             const typing = document.getElementById('typing-indicator');
             if (typing) typing.classList.remove('active');
+            scrollToBottom();
         }
 
         async function sendMessage() {
@@ -555,6 +582,7 @@
         });
 
         async function newChat() {
+            freshChat = true;
             try {
                 await fetch('/api/chat/new', {
                     method: 'POST',
@@ -566,7 +594,7 @@
                 <div class="empty-state" id="empty-state">
                     <div class="big-logo">S</div>
                     <h2>Saratthya</h2>
-                    <p>Local AI assistant powered by Ollama. Send a message or use WhatsApp to your own number.</p>
+                    <p>Local AI assistant powered by Ollama and opencode agents. Send a message to get started.</p>
                     <div class="example-chips">
                         <span onclick="sendExample('code: build a todo app')">code: build a todo app</span>
                         <span onclick="sendExample('explain: what is a transformer')">explain: transformer</span>
@@ -648,19 +676,32 @@
             } catch(e) {}
         }
 
+        async function loadAgents() {
+            try {
+                const r = await fetch('/api/agents');
+                const data = await r.json();
+                const grid = document.getElementById('agent-grid');
+                if (data.agents && data.agents.length) {
+                    grid.innerHTML = data.agents.map(a =>
+                        `<div class="persona-chip" onclick="sendExample('agent: ${a.name}: ')" title="${a.description || ''}"><span class="pfx">agent:</span> ${a.name}</div>`
+                    ).join('');
+                }
+            } catch(e) {}
+        }
+
         function sendExample(text) {
             document.getElementById('chat-input').value = text;
             document.getElementById('chat-input').focus();
             sendMessage();
         }
 
-        // Init — load history, but DON'T overwrite if user has already chatted
+        // Init
         loadStatus();
         loadModels();
+        loadAgents();
         if (!chatHistory.length) loadChat();
         setInterval(loadStatus, 15000);
-        // Poll for new WhatsApp messages only if no live chat
-        setInterval(() => { if (!chatHistory.length) loadChat(); }, 10000);
+        setInterval(() => { if (!freshChat && !chatHistory.length) loadChat(); }, 10000);
     </script>
 </body>
 </html>

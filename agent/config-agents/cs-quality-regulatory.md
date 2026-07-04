@@ -5,7 +5,7 @@ skills: ra-qm-team
 domain: ra-qm
 model: sonnet
 tools:
-  Read:: true
+  Read: true
   Write: true
   Bash: true
   Grep: true

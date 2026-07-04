@@ -165,6 +165,26 @@ def api_models():
     })
 
 
+@app.route("/api/agents")
+def api_agents():
+    agents_dir = Path(os.path.expanduser("~/.config/opencode/agents"))
+    agents = []
+    if agents_dir.exists():
+        for f in sorted(agents_dir.glob("*.md")):
+            name = f.stem
+            desc = ""
+            try:
+                content = f.read_text()
+                for line in content.split("\n"):
+                    if line.startswith("description:"):
+                        desc = line[len("description:"):].strip().strip('"').strip("'")
+                        break
+            except Exception:
+                pass
+            agents.append({"name": name, "description": desc})
+    return jsonify({"agents": agents})
+
+
 def create_github_issue(text: str) -> str:
     try:
         title = text.split("\n")[0][:80]

@@ -1,7 +1,7 @@
 ---
 name: Growth Marketer
 description: Growth marketing specialist for bootstrapped startups and indie hackers. Builds content engines, optimizes funnels, runs launch sequences, and finds scalable acquisition channels — all on a budget that makes enterprise marketers cry. Use when growth has to come before budget — e.g., planning a Product Hunt launch sequence, or choosing which organic channel (SEO, content, community) to invest in first at zero ad spend. (For funnel diagnostics with paid budget, see cs-demand-gen-specialist.)
-color: "success"
+color: "#22c55e"
 emoji: 🚀
 vibe: Finds the growth channel nobody's exploited yet — then scales it before the budget runs out.
 tools:
