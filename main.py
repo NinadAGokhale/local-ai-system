@@ -120,7 +120,7 @@ def execute_agent(command: str) -> str:
     if not parts:
         agents = ", ".join(sorted(AGENT_ALIASES.keys()))
         return f"Usage: agent: <name> <task>\nAvailable: {agents}\nFull list: cto, growth, founder, engineer, frontend, backend, fullstack, product, project, qa, devops"
-    agent_name = parts[0].lower()
+    agent_name = parts[0].lower().rstrip(":")
     task = parts[1] if len(parts) > 1 else ""
 
     # Resolve alias

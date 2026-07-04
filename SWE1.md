@@ -1,16 +1,23 @@
 # SWE1 — Phase 1: Local Model Setup & opencode Integration
 
-## Objective
+## Status: ✅ Complete
 
-Get all 3 local Ollama models working with opencode's TUI, accessible via `/model` switch, with proper response display.
+**Objective:** Get all 3 local Ollama models working with opencode, accessible via web UI model dropdown.
 
-## Current State
+## Result
+- All models work via `streaming: false` provider config (fixes Qwen 3.5 reasoning leak)
+- Web UI model dropdown lists all Ollama models + opencode cloud models
+- 362 skills loaded, 35 agents available
+- 72 unit tests passing
 
-```
-qwen3.5:4b       → ❌ Shows "Thought: 4ms / The" (reasoning leak)
-qwen3.5:9b       → ❌ Same issue as 4b
-qwen2.5-coder:7b → ✅ Works perfectly
-```
+## Model Setup
+
+| Model | Status | Notes |
+|-------|--------|-------|
+| `qwen2.5-coder:7b` | ✅ Works | Default, best code quality |
+| `qwen3.5:4b` | ✅ Works | streaming:false in config |
+| `qwen3.5:9b` | ✅ Works | streaming:false in config |
+| `opencode/deepseek-v4-flash-free` | ✅ Works | Cloud model via opencode CLI |
 
 ## Task List
 

@@ -1,14 +1,14 @@
-# Saratthya — Local AI System (Web-controlled MacBook Automation)
+# Saratthya — Agentic Market Analytics & Business Development
 
-Control your MacBook via a local web chat UI using local LLMs, opencode, and custom automation.
+Local AI system controlled via web chat UI. Uses Ollama for local LLM inference and opencode for agentic tool execution. All on-device, no cloud dependency.
 
 ## Quick Start
 
 ```bash
-# Start the web dashboard (single entry point)
 pip install flask
 python dashboard.py
 # Open http://localhost:5050
+# Login: user / password123
 ```
 
 ## Project Structure
@@ -17,81 +17,72 @@ python dashboard.py
 local-ai-system/
 ├── dashboard.py              # Flask web server (port 5050) — entry point
 ├── main.py                   # Core message handler (imported by dashboard)
-├── opencode_wrapper.py       # Dual-mode: Ollama direct + opencode agent
-├── command_parser.py         # Intent-based command parser
-├── response_formatter.py     # Formats responses (full mode for web UI)
-├── session_manager.py        # Per-user session & history
-├── message_logger.py         # Middleware that logs all messages
-├── templates/dashboard.html  # Chat UI (ChatGPT-style)
-├── agent/                    # opencode agent/skill definitions
-│   ├── sdlc-skills/          # Skill instruction files
-│   └── *-agent.md            # Agent persona definitions
-├── tests/                    # Unit tests (73+ passing)
-├── reports/                  # SWE execution reports
-└── README.md
+├── opencode_wrapper.py       # Ollama direct API + opencode agent routing
+├── command_parser.py         # Intent-based command parser (7 prefixes)
+├── response_formatter.py     # Response formatting
+├── session_manager.py        # Per-user session persistence
+├── message_logger.py         # JSONL logging middleware
+├── templates/
+│   ├── dashboard.html        # Chat UI (ChatGPT-style)
+│   └── login.html            # Login page with Saratthya branding
+├── static/logo.jpeg          # Saratthya logo
+├── agent/
+│   ├── config-agents/        # 35 agent definitions (cs-*, startup-cto, etc.)
+│   ├── skills/               # 362 skills for agentic tool execution
+│   ├── sdlc-skills/          # Core skill files
+│   └── opencode-config.jsonc # Reference opencode configuration
+├── tests/                    # 72 unit tests
+└── reports/                  # SWE execution reports
 ```
 
-## System Architecture
+## Architecture
 
 ```
-User Browser (localhost:5050)
-         │
-         ▼
-    Flask Web UI (dashboard.py)
-         │
-         ├── /api/chat → handle_message() → command_parser → run_ollama/run_agent
-         ├── /api/logs → message_logger (JSONL)
-         ├── /api/status → system info
-         ├── /api/models → Ollama model list
-         └── /api/chat/new → session reset
-                  │
-          ┌───────┴────────┐
-          ▼                ▼
-   run_ollama()        run_agent()
-   (Ollama HTTP API)   (opencode + tool execution)
-          │                │
-          ▼                ▼
-   Ollama models     opencode agents
-   (local, no tools)  (with skills + tools)
+Browser → Login → Chat UI (localhost:5050)
+                     │
+                Flask API
+              ┌────┴────┐
+         run_ollama   run_agent
+         (direct API) (opencode CLI)
+              │            │
+         Ollama LLMs   opencode agents
+         (local)       (with skills + tools)
 ```
 
-## Local Models
+## Features
 
-| Model | Use Case |
-|-------|----------|
-| `qwen2.5-coder:7b` | Primary coding tasks |
-| `qwen3.5:4b` | Lightweight reasoning |
-| `qwen3.5:9b` | Complex reasoning |
+- **Login page** with username/password auth
+- **Chat UI** with message bubbles, model dropdown, typing indicator
+- **Model selector** — all Ollama models + opencode cloud models
+- **Smart routing** — `ollama/*` → direct API (fast), `opencode/*` → opencode CLI (full tools)
+- **Catalogue** modal — browse all 35 agents, 7 commands, 362 skills with search
+- **7 command prefixes**: `code:`, `explain:`, `reason:`, `shell:`, `file:`, `search:`, `status`, `agent:`
+- **35 agent personas** — `agent:<name>` routes through opencode with full tool execution
+- **Session persistence** — chat history persisted across page reloads
+- **"New Chat"** — resets session, keeps log history
 
-## Chat Interface
+## Access
 
-```bash
-python dashboard.py    # http://localhost:5050
-```
+| URL | Description |
+|-----|-------------|
+| `http://localhost:5050/` | Chat UI (after login) |
+| `http://localhost:5050/login` | Login page |
+| `http://localhost:5050/logout` | Logout |
 
-- **ChatGPT-style UI** with message bubbles, model dropdown, typing indicator
-- **Model selector** — choose any local Ollama model
-- **Command prefixes** — `code:`, `explain:`, `reason:`, `shell:`, `file:`, `search:`, `status`, `agent:`
-- **Agent persona routing** — `agent:<name>` runs through opencode with specified agent + tool execution
-- **New Chat** — resets session
-- **Message Log** — history with intent, model, latency
+Default credentials: `user` / `password123`
 
-## Agent Personas
+## Models
 
-| Prefix | Agent | Backend |
-|--------|-------|---------|
-| `agent:engineer` | Engineer | opencode + tools |
-| `agent:architect` | Architect | opencode + tools |
-| `agent:frontend` | Frontend | opencode + tools |
-| `agent:backend` | Backend | opencode + tools |
-| `agent:devops` | DevOps | opencode + tools |
-| `agent:qa` | QA | opencode + tools |
-| `agent:product` | Product | opencode + tools |
-| `agent:project` | Project | opencode + tools |
-| `agent:cto` | CTO | opencode + tools |
-| `agent:growth` | Growth | opencode + tools |
-| `agent:founder` | Founder | opencode + tools |
-| `agent:fullstack` | Fullstack | opencode + tools |
+| Model | Type | Use Case |
+|-------|------|----------|
+| `ollama/qwen2.5-coder:7b` | Local | Code generation |
+| `ollama/qwen3.5:4b` | Local | Fast reasoning |
+| `ollama/qwen3.5:9b` | Local | Deep reasoning |
+| `opencode/deepseek-v4-flash-free` | Cloud | General, full tool access |
+
+## Agents
+
+35 agents available. Browse full list in the Catalogue (Catalogue button in chat header). Notable agents: cs-aeo, cs-cto-advisor, cs-engineering-lead, solo-founder, startup-cto, devops-engineer, finance-lead, growth-marketer, product-manager, and 25+ cs-* persona agents.
 
 ## GitHub
 

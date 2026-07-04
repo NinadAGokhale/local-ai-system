@@ -58,7 +58,7 @@ def logout():
 @app.route("/")
 @login_required
 def index():
-    messages = get_recent_messages(limit=100)
+    messages = get_recent_messages(limit=100, phone="web-ui")
     requirements = get_recent_requirements(limit=20)
     return render_template("dashboard.html", messages=messages, requirements=requirements)
 

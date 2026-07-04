@@ -443,17 +443,38 @@
         </div>
 
         <div class="messages" id="messages">
-            <div class="empty-state" id="empty-state">
-                <div class="big-logo"><img src="/static/logo.jpeg" alt="Saratthya"></div>
-                <h2>Saratthya</h2>
-                <p>Agentic Market Analytics &amp; Business Development. Choose an agent or send a message to start.</p>
-                <div class="example-chips">
-                    <span onclick="sendExample('code: build a todo app')">code: build a todo app</span>
-                    <span onclick="sendExample('explain: what is a transformer')">explain: transformer</span>
-                    <span onclick="sendExample('status')">status</span>
-                    <span onclick="sendExample('agent: engineer: design a login system')">agent: engineer</span>
+            {% if messages %}
+                {% for m in messages|reverse %}
+                    <div class="msg-group">
+                        <div class="msg-bubble user">{{ m.raw_message }}</div>
+                        <div class="msg-meta user-meta"></div>
+                        <div class="msg-bubble bot{% if m.response_preview and m.response_preview.startswith('Error:') %} error{% endif %}">{{ m.response_preview or '(empty)' }}</div>
+                        <div class="msg-meta bot-meta">
+                            {% if m.parsed_intent and m.parsed_intent != 'unknown' %}
+                                <span class="intent-tag {{ m.parsed_intent }}">{{ m.parsed_intent }}</span>
+                            {% endif %}
+                            {% if m.model %}
+                                <span>{{ m.model.replace('ollama/', '') }}</span>
+                            {% endif %}
+                            {% if m.latency_ms %}
+                                <span>{{ '%.1f'|format(m.latency_ms/1000) }}s</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state" id="empty-state">
+                    <div class="big-logo"><img src="/static/logo.jpeg" alt="Saratthya"></div>
+                    <h2>Saratthya</h2>
+                    <p>Agentic Market Analytics &amp; Business Development. Choose an agent or send a message to start.</p>
+                    <div class="example-chips">
+                        <span onclick="sendExample('code: build a todo app')">code: build a todo app</span>
+                        <span onclick="sendExample('explain: what is a transformer')">explain: transformer</span>
+                        <span onclick="sendExample('status')">status</span>
+                        <span onclick="sendExample('agent: engineer: design a login system')">agent: engineer</span>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
         </div>
 
         <div class="input-area">
@@ -856,12 +877,10 @@
         }
 
         // Init
-        loadStatus();
         loadModels();
         loadAgents();
-        if (!chatHistory.length) loadChat();
+        loadStatus();
         setInterval(loadStatus, 15000);
-        setInterval(() => { if (!freshChat && !chatHistory.length) loadChat(); }, 10000);
     </script>
 </body>
 </html>
