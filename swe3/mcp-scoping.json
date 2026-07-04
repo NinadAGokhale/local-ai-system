@@ -1,0 +1,56 @@
+{
+  "description": "MCP Tool Scoping Per Persona — reference config for opencode agent configuration",
+  "agents": {
+    "architect": {
+      "model": "ollama/qwen3.5:4b",
+      "tools": {
+        "github_issues_write": true,
+        "github_projects_write": true,
+        "github_projects_read": true,
+        "filesystem_write": true,
+        "shell_git": true
+      }
+    },
+    "coding": {
+      "model": "ollama/qwen2.5-coder:7b",
+      "tools": {
+        "github_issues_read": true,
+        "github_pull_requests_write": true,
+        "filesystem_read": true,
+        "filesystem_write": true,
+        "shell_build": true,
+        "shell_test": true,
+        "shell_git": true
+      }
+    },
+    "system": {
+      "model": "ollama/qwen3.5:4b",
+      "tools": {
+        "github_issues_read": true,
+        "filesystem_read": true,
+        "filesystem_write": true,
+        "shell_command": true,
+        "shell_applescript": true
+      }
+    },
+    "devops": {
+      "model": "ollama/qwen3.5:4b",
+      "tools": {
+        "github_actions_read": true,
+        "github_actions_write": true,
+        "github_releases": true,
+        "shell_git": true,
+        "shell_command": true
+      }
+    },
+    "bridge": {
+      "model": "ollama/qwen3.5:4b",
+      "tools": {
+        "whatsapp_send": true,
+        "whatsapp_receive": true,
+        "opencode_execute": true,
+        "filesystem_read": true
+      }
+    }
+  }
+}
