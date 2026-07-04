@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local AI System — Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; }
+        h1 { color: #58a6ff; margin-bottom: 8px; }
+        .subtitle { color: #8b949e; margin-bottom: 24px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; }
+        .card h2 { color: #58a6ff; font-size: 16px; margin-bottom: 12px; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+        .card h3 { color: #c9d1d9; font-size: 14px; margin: 12px 0 6px; }
+        .stat { font-size: 28px; font-weight: 600; color: #f0f6fc; }
+        .stat-label { font-size: 12px; color: #8b949e; }
+
+        textarea, input { width: 100%; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; padding: 10px; font-size: 14px; margin-bottom: 10px; }
+        textarea { min-height: 100px; font-family: monospace; resize: vertical; }
+        button { background: #238636; color: #fff; border: none; border-radius: 6px; padding: 10px 20px; font-size: 14px; cursor: pointer; }
+        button:hover { background: #2ea043; }
+        .msg { font-size: 13px; }
+        .msg .meta { color: #8b949e; font-size: 11px; }
+        .msg .intent { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 10px; margin-left: 6px; }
+        .intent.code { background: #1f6feb33; color: #58a6ff; }
+        .intent.explain { background: #23863633; color: #3fb950; }
+        .intent.reason { background: #9e6a0333; color: #d29922; }
+        .intent.shell { background: #da363333; color: #f85149; }
+        .intent.unknown { background: #30363d; color: #8b949e; }
+        .entry { padding: 8px 0; border-bottom: 1px solid #21262d; }
+        .entry:last-child { border-bottom: none; }
+        .req-link { color: #58a6ff; font-size: 11px; }
+        .error { color: #f85149; }
+        #toast { position: fixed; bottom: 20px; right: 20px; background: #238636; color: #fff; padding: 12px 20px; border-radius: 6px; display: none; }
+        .scroll { max-height: 500px; overflow-y: auto; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0d1117; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <h1>Local AI System</h1>
+    <p class="subtitle">WhatsApp-controlled MacBook automation — dashboard</p>
+
+    <div class="grid">
+        <div class="card">
+            <h2>System Status</h2>
+            <div id="status-loading">Loading...</div>
+            <div id="status-content" style="display:none">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center">
+                    <div><div class="stat" id="stat-ollama">-</div><div class="stat-label">Ollama Models</div></div>
+                    <div><div class="stat" id="stat-msgs">-</div><div class="stat-label">Messages Logged</div></div>
+                    <div><div class="stat" id="stat-reqs">-</div><div class="stat-label">Requirements</div></div>
+                </div>
+                <div style="margin-top:12px;font-size:12px;color:#8b949e" id="status-details"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Submit New Requirement</h2>
+            <p style="font-size:12px;color:#8b949e;margin-bottom:10px">Describe what you want the system to do. This will create a GitHub issue.</p>
+            <textarea id="req-text" placeholder="E.g., Add a feature to transcribe voice messages from WhatsApp..."></textarea>
+            <button onclick="submitRequirement()">Submit Requirement</button>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>Message Log</h2>
+            <div class="scroll" id="message-log">
+                {% for m in messages %}
+                <div class="entry msg">
+                    <div class="meta">{{ m.timestamp[:19] }} · {{ m.phone }} <span class="intent {{ m.parsed_intent }}">{{ m.parsed_intent }}</span></div>
+                    <div><strong>{{ m.raw_message[:80] }}{% if m.raw_message|length > 80 %}...{% endif %}</strong></div>
+                    <div style="color:#8b949e">{{ m.response_preview[:120] }}</div>
+                    <div class="meta">{{ m.model or 'no-llm' }} · {{ m.latency_ms }}ms</div>
+                </div>
+                {% else %}
+                <div style="color:#8b949e">No messages yet</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Requirements History</h2>
+            <div class="scroll" id="requirement-log">
+                {% for r in requirements %}
+                <div class="entry">
+                    <div class="meta">{{ r.timestamp[:19] }} · {{ r.phone }}</div>
+                    <div>{{ r.requirement[:120] }}{% if r.requirement|length > 120 %}...{% endif %}</div>
+                    {% if r.issue_url %}
+                    <a class="req-link" href="{{ r.issue_url }}" target="_blank">{{ r.issue_url }}</a>
+                    {% endif %}
+                    <div class="meta">Status: {{ r.status }}</div>
+                </div>
+                {% else %}
+                <div style="color:#8b949e">No requirements yet</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        async function loadStatus() {
+            try {
+                const r = await fetch('/api/status');
+                const s = await r.json();
+                document.getElementById('status-loading').style.display = 'none';
+                document.getElementById('status-content').style.display = 'block';
+                document.getElementById('stat-ollama').textContent = s.ollama_models;
+                document.getElementById('stat-msgs').textContent = s.messages_logged;
+                document.getElementById('stat-reqs').textContent = s.requirements_logged;
+                document.getElementById('status-details').textContent = `${s.os} · ${s.host} · ${s.uptime}`;
+            } catch(e) {
+                document.getElementById('status-loading').textContent = 'Failed to load status';
+            }
+        }
+
+        async function submitRequirement() {
+            const text = document.getElementById('req-text').value.trim();
+            if (!text) return;
+            const btn = document.querySelector('button');
+            btn.disabled = true;
+            btn.textContent = 'Submitting...';
+            try {
+                const r = await fetch('/api/requirements', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({text, is_requirement: true}),
+                });
+                const data = await r.json();
+                const toast = document.getElementById('toast');
+                if (data.issue_url) {
+                    toast.textContent = `Issue created: ${data.issue_url}`;
+                    toast.style.background = '#238636';
+                } else {
+                    toast.textContent = `Requirement logged (${data.status})`;
+                    toast.style.background = '#9e6a03';
+                }
+                toast.style.display = 'block';
+                setTimeout(() => toast.style.display = 'none', 5000);
+                document.getElementById('req-text').value = '';
+                if (data.issue_url) {
+                    setTimeout(() => location.reload(), 1500);
+                }
+            } catch(e) {
+                alert('Error: ' + e.message);
+            }
+            btn.disabled = false;
+            btn.textContent = 'Submit Requirement';
+        }
+
+        loadStatus();
+        setInterval(loadStatus, 30000);
+    </script>
+</body>
+</html>

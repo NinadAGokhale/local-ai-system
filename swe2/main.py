@@ -8,12 +8,13 @@ from opencode_wrapper import run_opencode
 from command_parser import parse_command, CommandType
 from response_formatter import format_response
 from session_manager import SessionManager
+from message_logger import MessageMiddleware, log_requirement
 
 session_manager = SessionManager()
 
 
-def handle_message(phone: str, text: str) -> str:
-    """Process an incoming WhatsApp message."""
+def _handle_message(phone: str, text: str) -> str:
+    """Process an incoming WhatsApp message (internal, no logging)."""
     session = session_manager.get_or_create(phone)
     session.last_command = text
 
@@ -44,6 +45,10 @@ def handle_message(phone: str, text: str) -> str:
     session_manager.add_to_history(phone, "assistant", formatted)
 
     return formatted
+
+
+# Public API: wrapped with logging middleware
+handle_message = MessageMiddleware(_handle_message)
 
 
 def get_status() -> str:

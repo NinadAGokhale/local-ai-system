@@ -1,0 +1,141 @@
+"""Web dashboard for Local AI System — logs viewer + requirement submission."""
+
+import json
+import os
+import subprocess
+from pathlib import Path
+
+from flask import Flask, render_template, request, jsonify
+
+from message_logger import get_recent_messages, get_recent_requirements, log_requirement
+from command_parser import parse_command
+
+app = Flask(__name__)
+
+REPO = "NinadAGokhale/local-ai-system"
+
+
+@app.route("/")
+def index():
+    messages = get_recent_messages(limit=100)
+    requirements = get_recent_requirements(limit=20)
+    return render_template("dashboard.html", messages=messages, requirements=requirements)
+
+
+@app.route("/api/logs")
+def api_logs():
+    phone = request.args.get("phone")
+    limit = int(request.args.get("limit", 50))
+    messages = get_recent_messages(limit=limit, phone=phone)
+    return jsonify(messages)
+
+
+@app.route("/api/requirements", methods=["GET"])
+def api_requirements():
+    return jsonify(get_recent_requirements())
+
+
+@app.route("/api/requirements", methods=["POST"])
+def api_create_requirement():
+    data = request.get_json()
+    if not data or "text" not in data:
+        return jsonify({"error": "Missing 'text' field"}), 400
+
+    phone = data.get("phone", "web-ui")
+    text = data["text"]
+
+    cmd_type, cleaned, model = parse_command(text)
+    is_new_requirement = cmd_type.value == "unknown" or data.get("is_requirement", True)
+
+    issue_url = None
+    if is_new_requirement:
+        issue_url = create_github_issue(text)
+
+    log_requirement(
+        phone=phone,
+        requirement_text=text,
+        issue_url=issue_url,
+        status="created" if issue_url else "parsed",
+    )
+
+    return jsonify({
+        "status": "created" if issue_url else "parsed",
+        "issue_url": issue_url,
+        "intent": cmd_type.value,
+        "cleaned_text": cleaned,
+    })
+
+
+@app.route("/api/status")
+def api_status():
+    import platform
+    uname = platform.uname()
+    uptime = "N/A"
+    try:
+        uptime = subprocess.check_output(["uptime"]).decode().strip()
+    except Exception:
+        pass
+    model_count = 0
+    try:
+        result = subprocess.run(
+            ["curl", "-s", "http://localhost:11434/api/tags"],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.stdout:
+            model_count = len(json.loads(result.stdout).get("models", []))
+    except Exception:
+        pass
+
+    log_dir = Path(__file__).parent / "logs"
+    msg_count = 0
+    req_count = 0
+    if (log_dir / "messages.jsonl").exists():
+        msg_count = sum(1 for _ in open(log_dir / "messages.jsonl"))
+    if (log_dir / "requirements.jsonl").exists():
+        req_count = sum(1 for _ in open(log_dir / "requirements.jsonl"))
+
+    return jsonify({
+        "os": f"{uname.system} {uname.release}",
+        "host": uname.node,
+        "uptime": uptime,
+        "ollama_models": model_count,
+        "messages_logged": msg_count,
+        "requirements_logged": req_count,
+        "sessions_active": 0,
+    })
+
+
+def create_github_issue(text: str) -> str:
+    try:
+        title = text.split("\n")[0][:80]
+        result = subprocess.run(
+            ["gh", "issue", "create", "--repo", REPO,
+             "--title", f"Requirement: {title}",
+             "--body", text,
+             "--label", "phase:swe1",
+             "--label", "persona:architect"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode == 0:
+            url = result.stdout.strip()
+            gh_project_add(url)
+            return url
+        return f"gh-error: {result.stderr[:200]}"
+    except Exception as e:
+        return f"error: {e}"
+
+
+def gh_project_add(issue_url: str):
+    try:
+        subprocess.run(
+            ["gh", "project", "item-add", "1", "--owner", "NinadAGokhale",
+             "--url", issue_url],
+            capture_output=True, timeout=15,
+        )
+    except Exception:
+        pass
+
+
+if __name__ == "__main__":
+    print("Dashboard starting at http://localhost:5050")
+    app.run(host="0.0.0.0", port=5050, debug=True)

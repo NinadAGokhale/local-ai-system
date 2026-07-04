@@ -19,18 +19,24 @@ client.on('ready', () => {
 
 client.on('message', async (msg) => {
     if (msg.from.endsWith('@c.us')) {
-        const response = await processCommand(msg.body);
+        const response = await processCommand(msg.from, msg.body);
         msg.reply(response);
     }
 });
 
-async function processCommand(command) {
+async function processCommand(phone, command) {
     try {
+        const escaped = command
+            .replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"')
+            .replace(/`/g, '\\`')
+            .replace(/\$/g, '\\$');
         const result = execSync(
-            `opencode run --model ollama/qwen2.5-coder:7b "${command.replace(/"/g, '\\"')}"`,
+            `python3 main.py "${phone}" "${escaped}"`,
             { timeout: 120000, encoding: 'utf-8', cwd: __dirname }
         );
-        return result || 'No output';
+        const lines = result.trim().split('\n');
+        return lines.filter(l => !l.includes('> build') && !l.includes('```')).join('\n').trim() || 'Done';
     } catch (err) {
         return `Error: ${err.message}`;
     }
