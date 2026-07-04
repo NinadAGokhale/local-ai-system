@@ -1,26 +1,7 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.egg-info/
-dist/
-build/
-
-# Node
+.wwebjs_cache/
+bridge/.wwebjs_cache/
 bridge/node_modules/
-npm-debug.log*
-
-# macOS
 .DS_Store
-*.swp
-*.swo
-
-# Local AI System
-logs/
-.wwebjs_auth/
-outbox.jsonl
+*.pyc
+__pycache__/
 .sessions.json
-
-# IDE
-.vscode/
-.idea/
