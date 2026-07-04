@@ -1,57 +1,78 @@
-# SWE2 Execution Report: WhatsApp Bot & End-to-End Automation
+# SWE2: Requirements — Web-Only Chat Interface
 
-## Status: ✅ Completed
+## Status: ✅ Updated (Jul 2026)
 
-## Files Created
+## Files
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `swe2/whatsapp-bridge.js` | ~45 | WhatsApp Web client with QR auth |
-| `swe2/opencode_wrapper.py` | ~35 | Python subprocess wrapper for opencode CLI |
-| `swe2/command_parser.py` | ~55 | Intent-based command parser with model routing |
-| `swe2/response_formatter.py` | ~35 | WhatsApp-safe response formatting |
-| `swe2/session_manager.py` | ~65 | Per-user session and history management |
-| `swe2/main.py` | ~100 | Main entry point tying all components |
-| `swe2/power_manager.sh` | ~40 | MacBook sleep prevention script |
-| `swe2/package.json` | ~12 | Node.js dependencies |
-| `swe2/requirements.txt` | ~2 | Python dependencies (stdlib only) |
-| `swe2/README.md` | ~40 | Documentation |
+| File | Purpose |
+|------|---------|
+| `dashboard.py` | Flask web server (port 5050) — sole entry point |
+| `main.py` | Core message handler module (imported by dashboard) |
+| `opencode_wrapper.py` | Dual-mode: Ollama direct + opencode agent runner |
+| `command_parser.py` | Intent-based command parser with prefix routing |
+| `response_formatter.py` | Response formatting (supports full mode for web) |
+| `session_manager.py` | Per-user session persistence |
+| `message_logger.py` | JSONL logging middleware |
+| `templates/dashboard.html` | Full chat UI (ChatGPT-style) |
+| `whatsapp_mcp.py` | [REMOVED] WhatsApp MCP server |
+| `bridge/` | [REMOVED] WhatsApp Web client + Node.js bridge |
 
-## Architecture
+## Core Requirements
 
+### 1. Web Chat Interface (REQ-WEB-01)
+- ChatGPT-style chat UI at `http://localhost:5050`
+- Message bubbles with user/saratthya distinction
+- Full response display (no truncation)
+- Auto-resize textarea input
+- Enter to send, Shift+Enter for newline
+- Typing indicator during processing
+
+### 2. Model Selection (REQ-MOD-01)
+- Dropdown listing all local Ollama models
+- Model override takes precedence over command-parsed model
+- Fetches live model list from Ollama API
+
+### 3. Command Prefixes (REQ-CMD-01)
+- `code:` → code generation (no tools)
+- `explain:` → explanations (no tools)
+- `reason:` → deep reasoning (no tools)
+- `shell:` → Mac terminal commands
+- `file:` → file read/write
+- `search:` → Spotlight file search
+- `status` → system info
+- `agent:` → opencode agent with tool execution
+
+### 4. Session Management (REQ-SES-01)
+- Per-user conversation history
+- Persistent across server restarts (JSON file)
+- "New Chat" button resets session
+
+### 5. Agent/Skill Integration (REQ-AGT-01)
+- `agent:` prefix routes through opencode with selected agent
+- Agent definitions in `~/.config/opencode/agents/`
+- Skills in `~/.config/opencode/skills/`
+- Tool calls (write, bash, read, webfetch, search) executed locally
+
+### 6. Logging (REQ-LOG-01)
+- All messages logged to `logs/messages.jsonl`
+- 5000-char response preview stored
+- Latency tracking per message
+
+### 7. System Status (REQ-STA-01)
+- Bridge online/offline indicator
+- Ollama model count
+- Messages processed count
+- Session count
+- Uptime display
+
+## Removed Requirements
+- WhatsApp bridge (`bridge/`) — removed
+- WhatsApp MCP server (`whatsapp_mcp.py`) — removed
+- QR code auth — removed
+- Node.js runtime dependency — removed
+
+## Startup
+```bash
+cd ~/Desktop/local-ai-system && python dashboard.py
+# Open http://localhost:5050
 ```
-WhatsApp User → whatsapp-bridge.js (Node)
-                     ↓
-              command_parser.py → intent + model
-                     ↓
-              opencode_wrapper.py → CLI call
-                     ↓
-              response_formatter.py → WhatsApp text
-                     ↓
-              WhatsApp reply
-```
-
-## Command Patterns Supported
-
-| Pattern | Routes to | Model |
-|---------|-----------|-------|
-| `code: <task>` | Code generation | qwen2.5-coder:7b |
-| `explain: <topic>` | Explanation | qwen3.5:4b |
-| `reason: <problem>` | Complex reasoning | qwen3.5:9b |
-| `shell: <cmd>` | Direct shell execution | None (no LLM) |
-| `file: read <path>` | File reading | None (no LLM) |
-| `search: <query>` | Spotlight search | None (no LLM) |
-| `status` | System status | None (no LLM) |
-
-## Setup Steps
-1. `cd swe2 && npm install` (install Node.js deps)
-2. `node whatsapp-bridge.js` (launch bridge, scan QR)
-3. Bot responds to WhatsApp messages automatically
-
-## Power Management
-- `./power_manager.sh start` — prevents sleep via caffeinate
-- `./power_manager.sh stop` — allows sleep
-- Handled via shell script for manual control
-
-## Branch
-All code pushed to `swe2-whatsapp-bot` branch.

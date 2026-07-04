@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""WhatsApp Bot — main entry point for the Local AI System bridge."""
+"""Core message handler for Saratthya — imported by dashboard.py."""
 
-import sys
 import os
 from typing import Optional
 
@@ -149,10 +148,4 @@ def execute_search(command: str) -> str:
         return f"Search error: {e}"
 
 
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        phone = sys.argv[1]
-        message = " ".join(sys.argv[2:]) if len(sys.argv) > 2 else "status"
-        print(handle_message(phone, message))
-    else:
-        print("Usage: python main.py <phone> <message>")
+# Entry point: python dashboard.py (this module is imported by dashboard)

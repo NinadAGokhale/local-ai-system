@@ -59,35 +59,9 @@ def test_api_status_types():
 
 @patch("dashboard.subprocess.check_output")
 @patch("dashboard.subprocess.run")
-def test_api_status_bridge_online(mock_run, mock_check):
+def test_api_status_bridge_disabled(mock_run, mock_check):
     mock_check.return_value = b"up 3 days"
-    def fake_run(*args, **kwargs):
-        cmd = args[0] if args else kwargs.get("args", [])
-        if "pgrep" in str(cmd):
-            return MagicMock(returncode=0)
-        m = MagicMock()
-        m.stdout = '{"models":[{}]}'
-        return m
-    mock_run.side_effect = fake_run
-
-    client = dashboard.app.test_client()
-    resp = client.get("/api/status")
-    data = json.loads(resp.data)
-    assert data["bridge_online"] is True
-
-
-@patch("dashboard.subprocess.check_output")
-@patch("dashboard.subprocess.run")
-def test_api_status_bridge_offline(mock_run, mock_check):
-    mock_check.return_value = b"up 3 days"
-    def fake_run(*args, **kwargs):
-        cmd = args[0] if args else kwargs.get("args", [])
-        if "pgrep" in str(cmd):
-            return MagicMock(returncode=1)
-        m = MagicMock()
-        m.stdout = '{"models":[{}]}'
-        return m
-    mock_run.side_effect = fake_run
+    mock_run.side_effect = lambda *a, **kw: MagicMock(stdout='{"models":[{}]}')
 
     client = dashboard.app.test_client()
     resp = client.get("/api/status")

@@ -36,9 +36,8 @@
     },
     "whatsapp": {
       "type": "remote",
-      "command": ["python3", "whatsapp_mcp.py"],
-      "enabled": true,
-      "env": {}
+      "command": ["echo", "whatsapp-mcp-removed"],
+      "enabled": false
     }
   }
 }

@@ -99,16 +99,6 @@ def api_status():
     if (log_dir / "requirements.jsonl").exists():
         req_count = sum(1 for _ in open(log_dir / "requirements.jsonl"))
 
-    bridge_online = False
-    try:
-        bridge_check = subprocess.run(
-            ["pgrep", "-f", "node.*client.js"],
-            capture_output=True, timeout=3
-        )
-        bridge_online = bridge_check.returncode == 0
-    except Exception:
-        pass
-
     return jsonify({
         "os": f"{uname.system} {uname.release}",
         "host": uname.node,
@@ -117,7 +107,7 @@ def api_status():
         "messages_logged": msg_count,
         "requirements_logged": req_count,
         "sessions_active": len(session_manager.sessions),
-        "bridge_online": bridge_online,
+        "bridge_online": False,  # WhatsApp bridge removed
     })
 
 
