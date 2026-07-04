@@ -13,7 +13,7 @@ def test_index_returns_html():
     client = dashboard.app.test_client()
     resp = client.get("/")
     assert resp.status_code == 200
-    assert b"Local AI System" in resp.data
+    assert b"Saratthya" in resp.data
 
 
 def test_api_logs_empty():
