@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saratthya — Local AI Dashboard</title>
+    <title>Saratthya — Agentic Market Analytics &amp; Business Development</title>
     <link rel="icon" href="/static/logo.jpeg">
     <style>
         :root {
@@ -251,7 +251,6 @@
         .intent-tag.agent { background: rgba(168,85,247,0.2); color: #c084fc; }
         .intent-tag.unknown { background: rgba(100,116,139,0.2); color: #94a3b8; }
         .typing-indicator {
-            display: none;
             padding: 10px 14px;
             background: var(--surface-2);
             border: 1px solid var(--border);
@@ -262,7 +261,6 @@
             font-size: 13px;
             color: var(--text-dim);
         }
-        .typing-indicator.active { display: inline-block; }
         .typing-dots::after {
             content: '';
             animation: dots 1.5s steps(4, end) infinite;
@@ -387,7 +385,7 @@
             <div class="logo"><img src="/static/logo.jpeg" alt="Saratthya"></div>
             <div>
                 <h1>Saratthya</h1>
-                <div class="sub">Local AI Assistant</div>
+                <div class="sub">Agentic Market Analytics &amp; Business Development</div>
             </div>
         </div>
         <div class="sidebar-body">
@@ -427,9 +425,10 @@
 
     <!-- Main chat -->
     <div class="main">
-        <div class="chat-header">
+            <div class="chat-header">
             <span class="title">Chat</span>
             <div class="actions">
+                <button onclick="toggleCatalogue()">Catalogue</button>
                 <button onclick="newChat()">New Chat</button>
             </div>
         </div>
@@ -438,7 +437,7 @@
             <div class="empty-state" id="empty-state">
                 <div class="big-logo"><img src="/static/logo.jpeg" alt="Saratthya"></div>
                 <h2>Saratthya</h2>
-                <p>Local AI assistant powered by Ollama and opencode agents. Send a message to get started.</p>
+                <p>Agentic Market Analytics &amp; Business Development. Choose an agent or send a message to start.</p>
                 <div class="example-chips">
                     <span onclick="sendExample('code: build a todo app')">code: build a todo app</span>
                     <span onclick="sendExample('explain: what is a transformer')">explain: transformer</span>
@@ -456,6 +455,120 @@
             <div class="input-hint">Use prefixes: code:, explain:, reason:, agent: &lt;name&gt;:</div>
         </div>
     </div>
+
+    <!-- Catalogue Modal -->
+    <div class="modal-overlay" id="catalogue-modal" onclick="if(event.target===this) toggleCatalogue()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Agents &amp; Commands</h2>
+                <button class="modal-close" onclick="toggleCatalogue()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <h3>Commands</h3>
+                    <div class="cat-grid">
+                        <div class="cat-card" onclick="sendExample('code: ')"><span class="cat-pfx">code:</span> Code generation</div>
+                        <div class="cat-card" onclick="sendExample('explain: ')"><span class="cat-pfx">explain:</span> Explanations</div>
+                        <div class="cat-card" onclick="sendExample('reason: ')"><span class="cat-pfx">reason:</span> Deep reasoning</div>
+                        <div class="cat-card" onclick="sendExample('shell: ')"><span class="cat-pfx">shell:</span> Terminal commands</div>
+                        <div class="cat-card" onclick="sendExample('file: ')"><span class="cat-pfx">file:</span> File operations</div>
+                        <div class="cat-card" onclick="sendExample('search: ')"><span class="cat-pfx">search:</span> File search</div>
+                        <div class="cat-card" onclick="sendExample('status')"><span class="cat-pfx">status:</span> System status</div>
+                    </div>
+                </div>
+                <div class="modal-section">
+                    <h3>Agents <span class="agent-count" id="agent-count"></span></h3>
+                    <input class="cat-search" id="agent-search" type="text" placeholder="Search agents..." oninput="filterAgents()">
+                    <div class="cat-grid" id="catalogue-agents"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            max-width: 680px;
+            width: 90vw;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-header h2 { font-size: 15px; color: var(--orange-light); }
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 22px;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+        .modal-close:hover { color: var(--text); }
+        .modal-body {
+            padding: 16px 22px 22px;
+            overflow-y: auto;
+        }
+        .modal-section { margin-bottom: 20px; }
+        .modal-section h3 {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        .agent-count {
+            font-weight: 400;
+            color: var(--text-dim);
+        }
+        .cat-search {
+            width: 100%;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            padding: 10px 14px;
+            font-size: 12px;
+            outline: none;
+            margin-bottom: 12px;
+        }
+        .cat-search:focus { border-color: var(--orange); }
+        .cat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        .cat-card {
+            padding: 8px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 11px;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+        .cat-card:hover { border-color: var(--orange); color: var(--orange-light); }
+        .cat-pfx { color: var(--orange); font-weight: 600; }
+    </style>
 
     <script>
         let chatHistory = [];
@@ -510,25 +623,22 @@
         }
 
         function showTyping() {
+            const existing = document.getElementById('typing-indicator');
+            if (existing) existing.remove();
             const container = document.getElementById('messages');
             const empty = document.getElementById('empty-state');
             if (empty) empty.style.display = 'none';
-            let typing = document.getElementById('typing-indicator');
-            if (!typing) {
-                typing = document.createElement('div');
-                typing.id = 'typing-indicator';
-                typing.className = 'typing-indicator active';
-                typing.innerHTML = 'Saratthya is thinking<span class="typing-dots"></span>';
-                container.appendChild(typing);
-            } else {
-                typing.classList.add('active');
-            }
+            const typing = document.createElement('div');
+            typing.id = 'typing-indicator';
+            typing.className = 'typing-indicator';
+            typing.innerHTML = 'Saratthya is thinking<span class="typing-dots"></span>';
+            container.appendChild(typing);
             scrollToBottom();
         }
 
         function hideTyping() {
             const typing = document.getElementById('typing-indicator');
-            if (typing) typing.classList.remove('active');
+            if (typing) typing.remove();
             scrollToBottom();
         }
 
@@ -593,7 +703,7 @@
                 <div class="empty-state" id="empty-state">
                 <div class="big-logo"><img src="/static/logo.jpeg" alt="Saratthya"></div>
                 <h2>Saratthya</h2>
-                <p>Local AI assistant powered by Ollama and opencode agents. Send a message to get started.</p>
+                <p>Agentic Market Analytics &amp; Business Development. Choose an agent or send a message to start.</p>
                     <div class="example-chips">
                         <span onclick="sendExample('code: build a todo app')">code: build a todo app</span>
                         <span onclick="sendExample('explain: what is a transformer')">explain: transformer</span>
@@ -675,17 +785,44 @@
             } catch(e) {}
         }
 
+        let allAgents = [];
+
         async function loadAgents() {
             try {
                 const r = await fetch('/api/agents');
                 const data = await r.json();
+                allAgents = data.agents || [];
                 const grid = document.getElementById('agent-grid');
-                if (data.agents && data.agents.length) {
-                    grid.innerHTML = data.agents.map(a =>
+                if (allAgents.length) {
+                    grid.innerHTML = allAgents.map(a =>
                         `<div class="persona-chip" onclick="sendExample('agent: ${a.name}: ')" title="${a.description || ''}"><span class="pfx">agent:</span> ${a.name}</div>`
                     ).join('');
                 }
             } catch(e) {}
+        }
+
+        function toggleCatalogue() {
+            const modal = document.getElementById('catalogue-modal');
+            const isOpen = modal.classList.contains('active');
+            modal.classList.toggle('active');
+            if (!isOpen) renderCatalogue();
+        }
+
+        function renderCatalogue(filter) {
+            const grid = document.getElementById('catalogue-agents');
+            const count = document.getElementById('agent-count');
+            const agents = filter
+                ? allAgents.filter(a => a.name.toLowerCase().includes(filter.toLowerCase()))
+                : allAgents;
+            count.textContent = `(${agents.length})`;
+            grid.innerHTML = agents.map(a =>
+                `<div class="cat-card" onclick="sendExample('agent: ${a.name}: ')"><span class="cat-pfx">agent:</span> ${a.name}</div>`
+            ).join('');
+        }
+
+        function filterAgents() {
+            const q = document.getElementById('agent-search').value;
+            renderCatalogue(q);
         }
 
         function sendExample(text) {

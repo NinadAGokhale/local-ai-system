@@ -1,11 +1,12 @@
-"""Web dashboard for Local AI System — logs viewer + requirement submission."""
+"""Saratthya dashboard — Agentic Market Analytics & Business Development."""
 
 import json
 import os
 import subprocess
+from functools import wraps
 from pathlib import Path
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 
 from message_logger import get_recent_messages, get_recent_requirements, log_requirement
 from command_parser import parse_command, CommandType
@@ -16,11 +17,46 @@ session_manager = SessionManager()
 
 app = Flask(__name__,
     template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
+app.secret_key = os.urandom(24).hex()
 
 REPO = "NinadAGokhale/local-ai-system"
 
+LOGIN_USER = "user"
+LOGIN_PASS = "password123"
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        data = request.get_json() or request.form
+        if data.get("username") == LOGIN_USER and data.get("password") == LOGIN_PASS:
+            session["logged_in"] = True
+            if request.is_json:
+                return jsonify({"ok": True})
+            return redirect(url_for("index"))
+        if request.is_json:
+            return jsonify({"ok": False, "error": "Invalid credentials"}), 401
+        return render_template("login.html", error="Invalid credentials")
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.pop("logged_in", None)
+    return redirect(url_for("login"))
+
 
 @app.route("/")
+@login_required
 def index():
     messages = get_recent_messages(limit=100)
     requirements = get_recent_requirements(limit=20)

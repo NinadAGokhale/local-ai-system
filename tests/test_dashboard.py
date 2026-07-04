@@ -11,6 +11,8 @@ from message_logger import MESSAGES_LOG, REQUIREMENTS_LOG
 
 def test_index_returns_html():
     client = dashboard.app.test_client()
+    with client.session_transaction() as sess:
+        sess["logged_in"] = True
     resp = client.get("/")
     assert resp.status_code == 200
     assert b"Saratthya" in resp.data
