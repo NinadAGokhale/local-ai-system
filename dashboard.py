@@ -8,7 +8,10 @@ from pathlib import Path
 from flask import Flask, render_template, request, jsonify
 
 from message_logger import get_recent_messages, get_recent_requirements, log_requirement
-from command_parser import parse_command
+from command_parser import parse_command, CommandType
+from session_manager import SessionManager
+
+session_manager = SessionManager()
 
 app = Flask(__name__,
     template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
@@ -95,6 +98,16 @@ def api_status():
     if (log_dir / "requirements.jsonl").exists():
         req_count = sum(1 for _ in open(log_dir / "requirements.jsonl"))
 
+    bridge_online = False
+    try:
+        bridge_check = subprocess.run(
+            ["pgrep", "-f", "node.*client.js"],
+            capture_output=True, timeout=3
+        )
+        bridge_online = bridge_check.returncode == 0
+    except Exception:
+        pass
+
     return jsonify({
         "os": f"{uname.system} {uname.release}",
         "host": uname.node,
@@ -102,7 +115,8 @@ def api_status():
         "ollama_models": model_count,
         "messages_logged": msg_count,
         "requirements_logged": req_count,
-        "sessions_active": 0,
+        "sessions_active": len(session_manager.sessions),
+        "bridge_online": bridge_online,
     })
 
 
