@@ -415,8 +415,7 @@
         <div class="chat-header">
             <span class="title">Chat</span>
             <div class="actions">
-                <button onclick="clearChat()">Clear</button>
-                <button onclick="loadChat()">Refresh</button>
+                <button onclick="newChat()">New Chat</button>
             </div>
         </div>
 
@@ -445,6 +444,7 @@
 
     <script>
         let chatHistory = [];
+        let lastMsgCount = 0;
 
         function addMessage(role, text, meta) {
             const container = document.getElementById('messages');
@@ -472,7 +472,7 @@
                 }
                 if (meta.model) {
                     const span = document.createElement('span');
-                    span.textContent = meta.model;
+                    span.textContent = meta.model.replace('ollama/', '');
                     metaDiv.appendChild(span);
                 }
                 if (meta.latency) {
@@ -534,7 +534,8 @@
                 const data = await r.json();
                 hideTyping();
                 if (data.response) {
-                    addMessage('bot', data.response, {});
+                    const modelName = selectedModel.replace('ollama/', '');
+                    addMessage('bot', data.response, {model: modelName});
                 } else if (data.error) {
                     addMessage('bot', `Error: ${data.error}`, {isError: true});
                 }
@@ -552,11 +553,35 @@
             }
         }
 
-        // Auto-resize textarea
         document.getElementById('chat-input').addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 120) + 'px';
         });
+
+        async function newChat() {
+            try {
+                await fetch('/api/chat/new', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({phone: 'web-ui'}),
+                });
+            } catch(e) {}
+            document.getElementById('messages').innerHTML = `
+                <div class="empty-state" id="empty-state">
+                    <div class="big-logo">S</div>
+                    <h2>Saratthya</h2>
+                    <p>Local AI assistant powered by Ollama. Send a message or use WhatsApp to your own number.</p>
+                    <div class="example-chips">
+                        <span onclick="sendExample('code: build a todo app')">code: build a todo app</span>
+                        <span onclick="sendExample('explain: what is a transformer')">explain: transformer</span>
+                        <span onclick="sendExample('status')">status</span>
+                        <span onclick="sendExample('agent: engineer: design a login system')">agent: engineer</span>
+                    </div>
+                </div>
+            `;
+            chatHistory = [];
+            lastMsgCount = 0;
+        }
 
         async function loadChat() {
             try {
@@ -565,19 +590,24 @@
                 const container = document.getElementById('messages');
                 const empty = document.getElementById('empty-state');
 
-                // Keep empty state if no messages
                 if (!msgs.length) {
                     if (empty) empty.style.display = 'flex';
                     return;
                 }
 
+                // Only update if there are new messages (don't overwrite live chat)
+                const totalLogs = msgs.length;
+                if (totalLogs <= lastMsgCount && chatHistory.length > 0) return;
+                lastMsgCount = totalLogs;
+
                 if (empty) empty.style.display = 'none';
                 container.innerHTML = '';
+                chatHistory = [];
 
                 msgs.reverse().forEach(m => {
                     const meta = {
                         intent: m.parsed_intent || 'unknown',
-                        model: m.model || '',
+                        model: (m.model || '').replace('ollama/', ''),
                         latency: m.latency_ms ? `${(m.latency_ms/1000).toFixed(1)}s` : '',
                     };
                     addMessage('user', m.raw_message || '', {});
@@ -622,32 +652,17 @@
 
         function sendExample(text) {
             document.getElementById('chat-input').value = text;
+            document.getElementById('chat-input').focus();
             sendMessage();
         }
 
-        function clearChat() {
-            document.getElementById('messages').innerHTML = `
-                <div class="empty-state" id="empty-state">
-                    <div class="big-logo">S</div>
-                    <h2>Saratthya</h2>
-                    <p>Local AI assistant powered by Ollama. Send a message or use WhatsApp to your own number.</p>
-                    <div class="example-chips">
-                        <span onclick="sendExample('code: build a todo app')">code: build a todo app</span>
-                        <span onclick="sendExample('explain: what is a transformer')">explain: transformer</span>
-                        <span onclick="sendExample('status')">status</span>
-                        <span onclick="sendExample('agent: engineer: design a login system')">agent: engineer</span>
-                    </div>
-                </div>
-            `;
-            chatHistory = [];
-        }
-
-        // Init
-        loadChat();
+        // Init — load history, but DON'T overwrite if user has already chatted
         loadStatus();
         loadModels();
+        if (!chatHistory.length) loadChat();
         setInterval(loadStatus, 15000);
-        setInterval(loadChat, 8000);
+        // Poll for new WhatsApp messages only if no live chat
+        setInterval(() => { if (!chatHistory.length) loadChat(); }, 10000);
     </script>
 </body>
 </html>
