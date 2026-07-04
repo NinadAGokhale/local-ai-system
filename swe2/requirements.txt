@@ -1,0 +1,2 @@
+# Python dependencies for opencode wrapper
+# No external dependencies needed — uses stdlib only
