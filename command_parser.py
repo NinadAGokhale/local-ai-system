@@ -22,6 +22,7 @@ MODEL_MAP = {
     CommandType.FILE: None,
     CommandType.SEARCH: None,
     CommandType.STATUS: None,
+    CommandType.UNKNOWN: None,
 }
 
 PREFIX_PATTERNS = {
