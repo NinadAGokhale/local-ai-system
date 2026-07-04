@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Saratthya — Local AI Dashboard</title>
+    <link rel="icon" href="/static/logo.jpeg">
     <style>
         :root {
             --orange: #fe6c19;
@@ -52,15 +53,14 @@
         .logo {
             width: 32px;
             height: 32px;
-            background: linear-gradient(135deg, var(--orange), var(--orange-dark));
             border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: 700;
-            color: #fff;
             flex-shrink: 0;
+            overflow: hidden;
+        }
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         .sidebar-header h1 {
             font-size: 15px;
@@ -338,15 +338,14 @@
         .empty-state .big-logo {
             width: 56px;
             height: 56px;
-            background: linear-gradient(135deg, var(--orange), var(--orange-dark));
             border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: 700;
-            color: #fff;
             margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .empty-state .big-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         .empty-state h2 {
             font-size: 16px;
@@ -385,7 +384,7 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <div class="logo">S</div>
+            <div class="logo"><img src="/static/logo.jpeg" alt="Saratthya"></div>
             <div>
                 <h1>Saratthya</h1>
                 <div class="sub">Local AI Assistant</div>
@@ -437,9 +436,9 @@
 
         <div class="messages" id="messages">
             <div class="empty-state" id="empty-state">
-                <div class="big-logo">S</div>
+                <div class="big-logo"><img src="/static/logo.jpeg" alt="Saratthya"></div>
                 <h2>Saratthya</h2>
-                <p>Local AI assistant powered by Ollama. Send a message or use WhatsApp to your own number.</p>
+                <p>Local AI assistant powered by Ollama and opencode agents. Send a message to get started.</p>
                 <div class="example-chips">
                     <span onclick="sendExample('code: build a todo app')">code: build a todo app</span>
                     <span onclick="sendExample('explain: what is a transformer')">explain: transformer</span>
@@ -592,9 +591,9 @@
             } catch(e) {}
             document.getElementById('messages').innerHTML = `
                 <div class="empty-state" id="empty-state">
-                    <div class="big-logo">S</div>
-                    <h2>Saratthya</h2>
-                    <p>Local AI assistant powered by Ollama and opencode agents. Send a message to get started.</p>
+                <div class="big-logo"><img src="/static/logo.jpeg" alt="Saratthya"></div>
+                <h2>Saratthya</h2>
+                <p>Local AI assistant powered by Ollama and opencode agents. Send a message to get started.</p>
                     <div class="example-chips">
                         <span onclick="sendExample('code: build a todo app')">code: build a todo app</span>
                         <span onclick="sendExample('explain: what is a transformer')">explain: transformer</span>
