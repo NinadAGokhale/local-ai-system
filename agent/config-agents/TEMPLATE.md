@@ -1,7 +1,7 @@
 ---
 name: Agent Name
 description: One paragraph describing what this agent does, who it's for, and when to activate it.
-color: "success"
+color: "#22c55e"
 emoji: 🎯
 vibe: One catchy sentence that captures this agent's personality.
 tools:

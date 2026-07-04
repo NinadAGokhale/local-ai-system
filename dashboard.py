@@ -208,6 +208,8 @@ def api_agents():
     if agents_dir.exists():
         for f in sorted(agents_dir.glob("*.md")):
             name = f.stem
+            if name.lower() in ("readme", "template"):
+                continue
             desc = ""
             try:
                 content = f.read_text()
@@ -219,6 +221,41 @@ def api_agents():
                 pass
             agents.append({"name": name, "description": desc})
     return jsonify({"agents": agents})
+
+
+@app.route("/api/skills")
+def api_skills():
+    skills_dir = Path(os.path.expanduser("~/.config/opencode/skills"))
+    skills = []
+    if skills_dir.exists():
+        for f in sorted(skills_dir.iterdir()):
+            if f.is_dir():
+                skill_file = f / "SKILL.md"
+                if skill_file.exists():
+                    name = f.name
+                    desc = ""
+                    try:
+                        content = skill_file.read_text()
+                        for line in content.split("\n"):
+                            if line.startswith("description:"):
+                                desc = line[len("description:"):].strip().strip('"').strip("'")
+                                break
+                    except Exception:
+                        pass
+                    skills.append({"name": name, "description": desc})
+            elif f.suffix == ".md" and f.stem.lower() not in ("readme", "template"):
+                name = f.stem
+                desc = ""
+                try:
+                    content = f.read_text()
+                    for line in content.split("\n"):
+                        if line.startswith("description:"):
+                            desc = line[len("description:"):].strip().strip('"').strip("'")
+                            break
+                except Exception:
+                    pass
+                skills.append({"name": name, "description": desc})
+    return jsonify({"skills": skills})
 
 
 def create_github_issue(text: str) -> str:

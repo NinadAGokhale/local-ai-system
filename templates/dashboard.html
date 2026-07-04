@@ -133,6 +133,27 @@
             letter-spacing: 0.5px;
             margin-bottom: 8px;
         }
+        .sidebar-hint {
+            margin-top: 16px;
+            padding: 10px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 11px;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sidebar-hint .hint-icon {
+            color: var(--orange);
+            font-size: 14px;
+        }
+        .sidebar-hint a {
+            color: var(--orange-light);
+            text-decoration: none;
+        }
+        .sidebar-hint a:hover { text-decoration: underline; }
         .persona-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -404,21 +425,9 @@
                 </div>
             </div>
 
-            <div class="persona-section">
-                <h3>Commands</h3>
-                <div class="persona-grid" id="persona-grid">
-                    <div class="persona-chip"><span class="pfx">code:</span> coder</div>
-                    <div class="persona-chip"><span class="pfx">explain:</span> teacher</div>
-                    <div class="persona-chip"><span class="pfx">reason:</span> analyst</div>
-                    <div class="persona-chip"><span class="pfx">shell:</span> terminal</div>
-                    <div class="persona-chip"><span class="pfx">file:</span> reader</div>
-                    <div class="persona-chip"><span class="pfx">search:</span> finder</div>
-                    <div class="persona-chip"><span class="pfx">status:</span> info</div>
-                </div>
-            </div>
-            <div class="persona-section">
-                <h3>Agents</h3>
-                <div class="persona-grid" id="agent-grid"></div>
+            <div class="sidebar-hint">
+                <span class="hint-icon">⌘</span>
+                <span>Browse all agents, commands &amp; skills in <a href="#" onclick="toggleCatalogue(); return false;">Catalogue</a></span>
             </div>
         </div>
     </div>
@@ -478,8 +487,13 @@
                 </div>
                 <div class="modal-section">
                     <h3>Agents <span class="agent-count" id="agent-count"></span></h3>
-                    <input class="cat-search" id="agent-search" type="text" placeholder="Search agents..." oninput="filterAgents()">
+                    <input class="cat-search" id="agent-search" type="text" placeholder="Search agents..." oninput="filterCatalogue()">
                     <div class="cat-grid" id="catalogue-agents"></div>
+                </div>
+                <div class="modal-section">
+                    <h3>Skills <span class="agent-count" id="skill-count"></span></h3>
+                    <input class="cat-search" id="skill-search" type="text" placeholder="Search skills..." oninput="filterCatalogue()">
+                    <div class="cat-grid" id="catalogue-skills"></div>
                 </div>
             </div>
         </div>
@@ -718,7 +732,7 @@
 
         async function loadChat() {
             try {
-                const r = await fetch('/api/logs?limit=30');
+                const r = await fetch('/api/logs?limit=30&phone=web-ui');
                 const msgs = await r.json();
                 const container = document.getElementById('messages');
                 const empty = document.getElementById('empty-state');
@@ -786,18 +800,18 @@
         }
 
         let allAgents = [];
+        let allSkills = [];
 
         async function loadAgents() {
             try {
                 const r = await fetch('/api/agents');
                 const data = await r.json();
                 allAgents = data.agents || [];
-                const grid = document.getElementById('agent-grid');
-                if (allAgents.length) {
-                    grid.innerHTML = allAgents.map(a =>
-                        `<div class="persona-chip" onclick="sendExample('agent: ${a.name}: ')" title="${a.description || ''}"><span class="pfx">agent:</span> ${a.name}</div>`
-                    ).join('');
-                }
+            } catch(e) {}
+            try {
+                const r = await fetch('/api/skills');
+                const data = await r.json();
+                allSkills = data.skills || [];
             } catch(e) {}
         }
 
@@ -808,21 +822,31 @@
             if (!isOpen) renderCatalogue();
         }
 
-        function renderCatalogue(filter) {
-            const grid = document.getElementById('catalogue-agents');
-            const count = document.getElementById('agent-count');
-            const agents = filter
-                ? allAgents.filter(a => a.name.toLowerCase().includes(filter.toLowerCase()))
-                : allAgents;
-            count.textContent = `(${agents.length})`;
-            grid.innerHTML = agents.map(a =>
+        function renderCatalogue() {
+            const agentQ = (document.getElementById('agent-search').value || '').toLowerCase();
+            const skillQ = (document.getElementById('skill-search').value || '').toLowerCase();
+
+            // Agents
+            const agentGrid = document.getElementById('catalogue-agents');
+            const agentCount = document.getElementById('agent-count');
+            const filteredAgents = agentQ ? allAgents.filter(a => a.name.toLowerCase().includes(agentQ)) : allAgents;
+            agentCount.textContent = `(${filteredAgents.length})`;
+            agentGrid.innerHTML = filteredAgents.map(a =>
                 `<div class="cat-card" onclick="sendExample('agent: ${a.name}: ')"><span class="cat-pfx">agent:</span> ${a.name}</div>`
+            ).join('');
+
+            // Skills
+            const skillGrid = document.getElementById('catalogue-skills');
+            const skillCount = document.getElementById('skill-count');
+            const filteredSkills = skillQ ? allSkills.filter(s => s.name.toLowerCase().includes(skillQ)) : allSkills;
+            skillCount.textContent = `(${filteredSkills.length})`;
+            skillGrid.innerHTML = filteredSkills.map(s =>
+                `<div class="cat-card" title="${(s.description || '').replace(/"/g, '&quot;')}">${s.name}</div>`
             ).join('');
         }
 
-        function filterAgents() {
-            const q = document.getElementById('agent-search').value;
-            renderCatalogue(q);
+        function filterCatalogue() {
+            renderCatalogue();
         }
 
         function sendExample(text) {

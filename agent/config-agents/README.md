@@ -63,7 +63,7 @@ See [TEMPLATE.md](template.md) for the format specification. Key elements:
 ---
 name: Agent Name
 description: What this agent does and when to activate it.
-color: blue          # Agent color theme
+color: "#22c55e"      # Agent color theme (hex)
 emoji: 🎯           # Single emoji identifier
 vibe: One sentence personality capture.
 tools:
