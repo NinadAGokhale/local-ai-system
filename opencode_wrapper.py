@@ -1,30 +1,45 @@
-import subprocess
-import tempfile
-import shlex
+import json
+import urllib.request
+import urllib.error
 from typing import Optional
 
+OLLAMA_HOST = "http://localhost:11434"
 DEFAULT_MODEL = "ollama/qwen2.5-coder:7b"
-OPCODE_BIN = "opencode"
 TIMEOUT = 120
 
 
+def _strip_prefix(model: str) -> str:
+    for prefix in ("ollama/", "openai/"):
+        if model.startswith(prefix):
+            return model[len(prefix):]
+    return model
+
+
 def run_opencode(command: str, model: str = DEFAULT_MODEL) -> str:
-    """Run opencode with a command and return the response text."""
+    """Run a prompt through Ollama directly and return the response text."""
+    raw_model = _strip_prefix(model)
+    payload = json.dumps({
+        "model": raw_model,
+        "prompt": command,
+        "stream": False,
+    }).encode()
+
     try:
-        result = subprocess.run(
-            [OPCODE_BIN, "run", "--model", model, command],
-            capture_output=True,
-            text=True,
-            timeout=TIMEOUT,
+        req = urllib.request.Request(
+            f"{OLLAMA_HOST}/api/generate",
+            data=payload,
+            headers={"Content-Type": "application/json"},
         )
-        output = result.stdout or result.stderr
-        return strip_ansi(output.strip())
-    except subprocess.TimeoutExpired:
-        return "Error: Command timed out after {} seconds".format(TIMEOUT)
-    except FileNotFoundError:
-        return "Error: opencode CLI not found. Is it installed?"
+        resp = urllib.request.urlopen(req, timeout=TIMEOUT)
+        data = json.loads(resp.read().decode())
+        return data.get("response", "").strip()
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        return f"Error: Ollama returned {e.code} — {body[:200]}"
+    except urllib.error.URLError as e:
+        return f"Error: Cannot reach Ollama at {OLLAMA_HOST} — {e.reason}"
     except Exception as e:
-        return "Error: {}".format(str(e))
+        return f"Error: {e}"
 
 
 def strip_ansi(text: str) -> str:

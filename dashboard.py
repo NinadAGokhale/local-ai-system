@@ -10,7 +10,8 @@ from flask import Flask, render_template, request, jsonify
 from message_logger import get_recent_messages, get_recent_requirements, log_requirement
 from command_parser import parse_command
 
-app = Flask(__name__)
+app = Flask(__name__,
+    template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
 
 REPO = "NinadAGokhale/local-ai-system"
 
