@@ -1,5 +1,8 @@
 .wwebjs_cache/
+.wwebjs_auth/
 .DS_Store
 *.pyc
 __pycache__/
 .sessions.json
+logs/
+Saratthya-logo.jpeg

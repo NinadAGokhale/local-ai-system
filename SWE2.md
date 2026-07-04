@@ -103,7 +103,7 @@ User Browser (localhost:5050)
 - [ ] `status` shows system info
 - [ ] `agent:` routes through opencode with tool execution
 - [ ] "New Chat" resets session
-- [ ] System status panel shows bridge/model/log info
+- [ ] System status panel shows model/system/log info
 - [ ] Session history persists across page refreshes
 - [ ] Typing indicator shows during processing
 - [ ] Error handling for long-running tasks

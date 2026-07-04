@@ -6,7 +6,7 @@ import subprocess
 from functools import wraps
 from pathlib import Path
 
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, make_response, render_template, request, jsonify, session, redirect, url_for
 
 from message_logger import get_recent_messages, get_recent_requirements, log_requirement
 from command_parser import parse_command, CommandType
@@ -60,7 +60,11 @@ def logout():
 def index():
     messages = get_recent_messages(limit=100, phone="web-ui")
     requirements = get_recent_requirements(limit=20)
-    return render_template("dashboard.html", messages=messages, requirements=requirements)
+    resp = make_response(render_template("dashboard.html", messages=messages, requirements=requirements))
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 
 @app.route("/api/logs")

@@ -13,7 +13,6 @@
 - **Coding Agent** (`coding-agent.md`): Implements code tasks, creates reports, pushes branches
 - **System Agent** (`system-agent.md`): macOS operations, file management, config
 - **DevOps Agent** (`devops-agent.md`): Git, CI/CD, deployment, releases
-- **WhatsApp Bridge Agent** (`whatsapp-bridge-agent.md`): Message parsing, routing, response formatting
 
 ### SWE3.3: Task Execution Workflow
 - Documented in `swe3/workflow.md`
@@ -35,7 +34,7 @@
 | coding-agent.md | `.config/opencode/skills/` + `swe3/` |
 | system-agent.md | `.config/opencode/skills/` + `swe3/` |
 | devops-agent.md | `.config/opencode/skills/` + `swe3/` |
-| whatsapp-bridge-agent.md | `.config/opencode/skills/` + `swe3/` |
+
 | workflow.md | `swe3/workflow.md` |
 | mcp-scoping.json | `swe3/mcp-scoping.json` |
 | sync-swe-to-github.sh | `swe3/sync-swe-to-github.sh` |

@@ -16,7 +16,7 @@ User Browser (localhost:5050)
          │
          ├── /api/chat → handle_message() → command_parser → run_ollama/run_agent
          ├── /api/logs → message_logger (JSONL)
-         ├── /api/status → system info + bridge check
+         ├── /api/status → system info + model check
          ├── /api/models → Ollama model list
          └── /api/chat/new → session reset
                   │
