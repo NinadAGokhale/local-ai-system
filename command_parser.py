@@ -11,6 +11,7 @@ class CommandType(Enum):
     FILE = "file"
     SEARCH = "search"
     STATUS = "status"
+    AGENT = "agent"
     UNKNOWN = "unknown"
 
 
@@ -22,10 +23,27 @@ MODEL_MAP = {
     CommandType.FILE: None,
     CommandType.SEARCH: None,
     CommandType.STATUS: None,
+    CommandType.AGENT: None,
     CommandType.UNKNOWN: None,
 }
 
+# Agent name aliases for convenience
+AGENT_ALIASES = {
+    "cto": "startup-cto",
+    "growth": "growth-marketer",
+    "founder": "solo-founder",
+    "engineer": "cs-engineering-lead",
+    "frontend": "cs-frontend-engineer",
+    "backend": "cs-backend-engineer",
+    "fullstack": "cs-fullstack-engineer",
+    "product": "cs-product-manager",
+    "project": "cs-project-manager",
+    "qa": "cs-quality-regulatory",
+    "devops": "devops-engineer",
+}
+
 PREFIX_PATTERNS = {
+    CommandType.AGENT: r'^(?:--agent|agent|persona)\b',
     CommandType.CODE: r'^(?:code|write|implement|create)\b',
     CommandType.EXPLAIN: r'^(?:explain|what|how|why|describe)\b',
     CommandType.REASON: r'^(?:reason|analyze|debug|optimize)\b',

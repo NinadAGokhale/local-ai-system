@@ -4,8 +4,8 @@
 import sys
 import os
 
-from opencode_wrapper import run_opencode
-from command_parser import parse_command, CommandType
+from opencode_wrapper import run_opencode, run_agent
+from command_parser import parse_command, CommandType, AGENT_ALIASES
 from response_formatter import format_response
 from session_manager import SessionManager
 from message_logger import MessageMiddleware, log_requirement
@@ -31,6 +31,9 @@ def _handle_message(phone: str, text: str) -> str:
 
     if cmd_type == CommandType.SEARCH:
         return execute_search(cleaned_text)
+
+    if cmd_type == CommandType.AGENT:
+        return execute_agent(cleaned_text)
 
     if model is None:
         model = session.current_model
@@ -104,6 +107,25 @@ def execute_file_op(command: str) -> str:
                 results.append(f"--- {p} ---\nError: {e}")
         return "\n\n".join(results)
     return "File operations: read <path>"
+
+
+def execute_agent(command: str) -> str:
+    """Handle agent: prefix — routes to opencode agent with tool execution."""
+    parts = command.strip().split(maxsplit=1)
+    if not parts:
+        agents = ", ".join(sorted(AGENT_ALIASES.keys()))
+        return f"Usage: agent: <name> <task>\nAvailable: {agents}\nFull list: cto, growth, founder, engineer, frontend, backend, fullstack, product, project, qa, devops"
+    agent_name = parts[0].lower()
+    task = parts[1] if len(parts) > 1 else ""
+
+    # Resolve alias
+    agent_name = AGENT_ALIASES.get(agent_name, agent_name)
+
+    if not task:
+        return f"Agent '{agent_name}' selected. Send your task after the agent name.\nExample: agent: {agent_name}: build a todo app"
+
+    result = run_agent(agent_name, task)
+    return format_response(result)
 
 
 def execute_search(command: str) -> str:

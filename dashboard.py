@@ -10,6 +10,7 @@ from flask import Flask, render_template, request, jsonify
 from message_logger import get_recent_messages, get_recent_requirements, log_requirement
 from command_parser import parse_command, CommandType
 from session_manager import SessionManager
+from main import handle_message
 
 session_manager = SessionManager()
 
@@ -118,6 +119,45 @@ def api_status():
         "sessions_active": len(session_manager.sessions),
         "bridge_online": bridge_online,
     })
+
+
+@app.route("/api/chat", methods=["POST"])
+def api_chat():
+    data = request.get_json()
+    if not data or "message" not in data:
+        return jsonify({"error": "Missing 'message' field"}), 400
+
+    message = data["message"]
+    phone = data.get("phone", "web-ui")
+    model_override = data.get("model")
+
+    # Set model preference if provided
+    if model_override:
+        from main import session_manager as main_sessions
+        main_sessions.set_model(phone, model_override)
+
+    try:
+        response = handle_message(phone, message)
+        return jsonify({"response": response})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/models")
+def api_models():
+    try:
+        result = subprocess.run(
+            ["ollama", "list"],
+            capture_output=True, text=True, timeout=10
+        )
+        models = []
+        for line in result.stdout.strip().split("\n")[1:]:
+            parts = line.split()
+            if parts:
+                models.append(parts[0])
+        return jsonify({"models": models})
+    except Exception as e:
+        return jsonify({"models": [], "error": str(e)})
 
 
 def create_github_issue(text: str) -> str:
