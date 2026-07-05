@@ -201,13 +201,14 @@ def run_opencode_cli(command: str, model: str = DEFAULT_MODEL) -> str:
 
 def run_opencode(command: str, model: str = DEFAULT_MODEL) -> str:
     """Route to appropriate backend based on model prefix.
-    ollama/* -> direct Ollama API (fast, no tools)
-    mlx/*    -> MLX server on Apple Silicon (OpenAI-compatible API)
-    opencode/* -> opencode CLI (skills + tools available)
+    ollama/*     -> direct Ollama API (fast, no tools)
+    mlx/*        -> MLX server on Apple Silicon (OpenAI-compatible API)
+    opencode/*   -> opencode CLI (skills + tools available)
+    opencode-go/*-> opencode CLI with opencode-go provider (cloud models)
     """
     if not model:
         model = DEFAULT_MODEL
-    if model.startswith("opencode/"):
+    if model.startswith("opencode-go/") or model.startswith("opencode/"):
         return run_opencode_cli(command, model)
     if model.startswith("mlx/"):
         return run_mlx(command, model)

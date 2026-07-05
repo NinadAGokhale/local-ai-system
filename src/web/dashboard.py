@@ -339,8 +339,24 @@ def api_models():
     except Exception:
         ollama_up = False
 
+    OPENCODE_GO_MODELS = {
+        "opencode-go/deepseek-v4-flash": {"emoji": "☁️", "label": "DeepSeek V4 Flash", "desc": "⚡ Fast – 2-8 sec. Best value cloud model."},
+        "opencode-go/deepseek-v4-pro": {"emoji": "☁️", "label": "DeepSeek V4 Pro", "desc": "🧠 Thinking – 10-40 sec. DeepSeek's most powerful. Great for complex analysis."},
+        "opencode-go/glm-5.1": {"emoji": "☁️", "label": "GLM 5.1", "desc": "🌐 General – 3-10 sec. ZhipuAI capable chat model."},
+        "opencode-go/glm-5.2": {"emoji": "☁️", "label": "GLM 5.2", "desc": "🌐 General – 3-10 sec. ZhipuAI latest."},
+        "opencode-go/kimi-k2.6": {"emoji": "☁️", "label": "Kimi K2.6", "desc": "🌐 General – 3-10 sec. Moonshot assistant."},
+        "opencode-go/kimi-k2.7-code": {"emoji": "☁️", "label": "Kimi K2.7 Code", "desc": "📝 Coding – 5-15 sec. Moonshot coding specialist."},
+        "opencode-go/mimo-v2.5": {"emoji": "☁️", "label": "MiMo V2.5", "desc": "⚡ Fast – 1-4 sec. Lightweight cloud model."},
+        "opencode-go/mimo-v2.5-pro": {"emoji": "☁️", "label": "MiMo V2.5 Pro", "desc": "🌐 General – 3-10 sec. Capable cloud model."},
+        "opencode-go/minimax-m2.7": {"emoji": "☁️", "label": "MiniMax M2.7", "desc": "🌐 General – 3-10 sec. MiniMax assistant."},
+        "opencode-go/minimax-m3": {"emoji": "☁️", "label": "MiniMax M3", "desc": "🧠 Thinking – 10-30 sec. MiniMax's best reasoning model."},
+        "opencode-go/qwen3.6-plus": {"emoji": "☁️", "label": "Qwen 3.6 Plus", "desc": "🌐 General – 3-10 sec. Alibaba's strong all-rounder."},
+        "opencode-go/qwen3.7-max": {"emoji": "☁️", "label": "Qwen 3.7 Max", "desc": "🧠 Thinking – 10-30 sec. Alibaba's most powerful model."},
+        "opencode-go/qwen3.7-plus": {"emoji": "☁️", "label": "Qwen 3.7 Plus", "desc": "🌐 General – 3-10 sec. Alibaba's balanced model."},
+    }
     opencode_models = [
-        {"id": "opencode/deepseek-v4-flash-free", "name": "DeepSeek V4 Flash", "emoji": "☁️", "desc": "Cloud-hosted — best quality, requires internet"},
+        {"id": mid, "name": meta["label"], "emoji": meta["emoji"], "desc": meta["desc"]}
+        for mid, meta in OPENCODE_GO_MODELS.items()
     ]
 
     mlx_models = []
@@ -365,6 +381,7 @@ def api_models():
         "ollama_models": ollama_models,
         "ollama_up": ollama_up,
         "opencode_models": opencode_models,
+        "opencode_up": True,
         "mlx_models": mlx_models,
         "mlx_up": mlx_up,
     })
