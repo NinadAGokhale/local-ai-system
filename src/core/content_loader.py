@@ -7,6 +7,18 @@ from typing import Optional
 
 SKILLS_DIR = Path(os.path.expanduser("~/.config/opencode/skills"))
 AGENTS_DIR = Path(os.path.expanduser("~/.config/opencode/agents"))
+PERSONAS_DIR = Path(os.path.expanduser("~/.config/opencode/personas"))
+
+
+def get_persona_content(name: str) -> str:
+    """Read persona .md content, return empty string if not found."""
+    persona_file = PERSONAS_DIR / f"{name}.md"
+    if persona_file.exists():
+        try:
+            return _strip_frontmatter(persona_file.read_text())
+        except Exception:
+            return ""
+    return ""
 
 
 def get_skill_content(name: str) -> str:

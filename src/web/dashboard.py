@@ -151,6 +151,7 @@ def index():
         conversations=conversations,
         current_history=s.history,
         current_agent=s.current_agent,
+        current_persona=s.current_persona,
         current_skills=s.current_skills,
         username=session.get("username", "user"),
     ))
@@ -262,6 +263,7 @@ def api_switch_conversation():
     return jsonify({
         "history": history,
         "current_agent": s.current_agent,
+        "current_persona": s.current_persona,
         "current_skills": s.current_skills,
     })
 
@@ -604,6 +606,37 @@ def api_skills():
                     pass
                 skills.append({"name": name, "description": desc})
     return jsonify({"skills": skills})
+
+
+@app.route("/api/personas", methods=["GET"])
+def api_personas():
+    personas_dir = Path(os.path.expanduser("~/.config/opencode/personas"))
+    personas = []
+    if personas_dir.exists():
+        for f in sorted(personas_dir.glob("*.md")):
+            name = f.stem
+            desc = ""
+            try:
+                content = f.read_text()
+                first_line = content.strip().split("\n")[0]
+                if first_line.lower().startswith("you are") or first_line.lower().startswith("persona"):
+                    desc = first_line[:120]
+                elif len(content) > 10:
+                    desc = "Voice persona for " + name.replace("-", " ").title()
+            except Exception:
+                pass
+            personas.append({"name": name, "description": desc})
+    return jsonify({"personas": personas})
+
+
+@app.route("/api/personas", methods=["POST"])
+def api_set_persona():
+    data = request.get_json(silent=True) or {}
+    phone = data.get("phone") or _web_phone()
+    persona = data.get("persona") or None
+    session_manager.set_persona(phone, persona)
+    s = session_manager.get_or_create(phone)
+    return jsonify({"ok": True, "current_persona": s.current_persona})
 
 
 def create_github_issue(text: str) -> str:

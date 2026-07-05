@@ -335,6 +335,33 @@
             transition: background 0.25s, border-color 0.25s;
         }
         .mode-bar:empty { display: none; }
+        .persona-picker-btn { font-size: 10px; border-radius: 10px; padding: 2px 8px; cursor: pointer; border: 1px dashed var(--border); background: none; color: var(--text-muted); transition: all 0.2s; font-family: var(--font); }
+        .persona-picker-btn:hover { border-color: var(--orange); color: var(--orange-light); }
+        .persona-popup {
+            position: fixed; z-index: 1000; background: var(--surface); border: 1px solid var(--border);
+            border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); min-width: 200px; overflow: hidden;
+        }
+        .persona-popup-header {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+            color: var(--text-muted); padding: 8px 12px 4px; font-weight: 600;
+        }
+        .persona-option {
+            padding: 8px 14px; font-size: 13px; cursor: pointer; transition: background 0.15s;
+            border-bottom: 1px solid var(--border);
+        }
+        .persona-option:last-child { border-bottom: none; }
+        .persona-option:hover { background: var(--surface-2); }
+        .persona-option.active { background: var(--surface-2); color: var(--orange); font-weight: 600; }
+        .persona-option.persona-clear { text-align: center; color: var(--text-muted); font-size: 12px; }
+        .persona-option.persona-clear span { color: var(--danger); }
+        .persona-chip {
+            background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px;
+            padding: 2px 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;
+            cursor: pointer; transition: border-color 0.2s; user-select: none;
+        }
+        .persona-chip:hover { border-color: var(--orange); }
+        .persona-add { border-style: dashed; opacity: 0.6; }
+        .persona-add:hover { opacity: 1; }
         .mode-chip {
             display: inline-flex;
             align-items: center;
@@ -863,6 +890,8 @@
         let allSkills = [];
         let currentAgent = {{ current_agent|tojson|safe }};
         let currentSkills = {{ current_skills|tojson|safe }};
+        let currentPersona = {{ current_persona|tojson|safe }};
+        let allPersonas = [];
         let acMode = null; // 'agent' or 'skill'
         let acFilter = '';
 
@@ -988,6 +1017,7 @@
                 const data = await r.json();
                 renderMessages(data.history);
                 if (data.current_agent) setModeAgent(data.current_agent);
+                if (data.current_persona) setPersona(data.current_persona);
                 if (data.current_skills) data.current_skills.forEach(s => setModeSkill(s));
                 await loadConversations();
             } catch(e) { console.error('Switch conv error:', e); }
@@ -1092,6 +1122,11 @@
         function renderModeBar() {
             const bar = document.getElementById('mode-bar');
             let html = '';
+            if (currentPersona) {
+                html += `<span class="mode-chip persona-chip" onclick="togglePersonaPicker(event)">🎭 ${escHtml(currentPersona)} <span class="remove-mode" onclick="clearPersona(event)">&times;</span></span>`;
+            } else {
+                html += `<span class="mode-chip persona-chip persona-add" onclick="togglePersonaPicker(event)">🎭 Persona</span>`;
+            }
             if (currentAgent) {
                 html += `<span class="mode-chip agent-chip">@${escHtml(currentAgent)} <span class="remove-mode" onclick="clearAgent(event)">&times;</span></span>`;
             }
@@ -1101,6 +1136,64 @@
                 });
             }
             bar.innerHTML = html;
+        }
+
+        // ─── Persona picker ───
+        function togglePersonaPicker(e) {
+            e.stopPropagation();
+            let popup = document.getElementById('persona-popup');
+            if (popup) {
+                popup.remove();
+                return;
+            }
+            popup = document.createElement('div');
+            popup.id = 'persona-popup';
+            popup.className = 'persona-popup';
+            let html = '<div class="persona-popup-header">Choose a Persona</div>';
+            allPersonas.forEach(p => {
+                const active = currentPersona === p.name ? ' active' : '';
+                html += `<div class="persona-option${active}" onclick="document.getElementById('persona-popup').remove(); setPersona('${escHtml(p.name)}')">🎭 ${escHtml(p.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}</div>`;
+            });
+            if (currentPersona) {
+                html += `<div class="persona-option persona-clear" onclick="document.getElementById('persona-popup').remove(); clearPersona()">Clear persona <span>&times;</span></div>`;
+            }
+            popup.innerHTML = html;
+            document.body.appendChild(popup);
+            // Position near the persona chip
+            const chip = e.target.closest('.persona-chip');
+            if (chip) {
+                const rect = chip.getBoundingClientRect();
+                popup.style.top = (rect.bottom + 4) + 'px';
+                popup.style.left = rect.left + 'px';
+            }
+            // Close on outside click
+            setTimeout(() => {
+                document.addEventListener('click', function h() {
+                    popup.remove();
+                    document.removeEventListener('click', h);
+                }, {once: true});
+            }, 50);
+        }
+
+        function setPersona(name) {
+            currentPersona = name;
+            renderModeBar();
+            fetch('/api/personas', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({persona: name}),
+            }).catch(() => {});
+        }
+
+        function clearPersona(e) {
+            if (e) e.stopPropagation();
+            currentPersona = null;
+            renderModeBar();
+            fetch('/api/personas', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({persona: null}),
+            }).catch(() => {});
         }
 
         function setModeAgent(name) {
@@ -1546,6 +1639,11 @@
                 const r = await fetch('/api/skills');
                 const data = await r.json();
                 allSkills = data.skills || [];
+            } catch(e) {}
+            try {
+                const r = await fetch('/api/personas');
+                const data = await r.json();
+                allPersonas = data.personas || [];
             } catch(e) {}
         }
 

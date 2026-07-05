@@ -15,6 +15,7 @@ class Session:
         self.conversations: list[dict] = []
         self.current_model: str = DEFAULT_MODEL
         self.current_agent: Optional[str] = None
+        self.current_persona: Optional[str] = None
         self.current_skills: list[str] = []
         self.last_command: Optional[str] = None
         self.context_files: list[str] = []
@@ -27,6 +28,7 @@ class Session:
             "conversations": self.conversations[-50:],
             "current_model": self.current_model,
             "current_agent": self.current_agent,
+            "current_persona": self.current_persona,
             "current_skills": self.current_skills,
             "last_command": self.last_command,
             "context_files": self.context_files,
@@ -40,6 +42,7 @@ class Session:
         s.conversations = data.get("conversations", [])
         s.current_model = data.get("current_model", DEFAULT_MODEL)
         s.current_agent = data.get("current_agent")
+        s.current_persona = data.get("current_persona")
         s.current_skills = data.get("current_skills", [])
         s.last_command = data.get("last_command")
         s.context_files = data.get("context_files", [])
@@ -186,6 +189,11 @@ class SessionManager:
     def set_agent(self, phone: str, agent: Optional[str]):
         session = self.get_or_create(phone)
         session.current_agent = agent
+        self._save()
+
+    def set_persona(self, phone: str, persona: Optional[str]):
+        session = self.get_or_create(phone)
+        session.current_persona = persona
         self._save()
 
     def toggle_skill(self, phone: str, skill: str):

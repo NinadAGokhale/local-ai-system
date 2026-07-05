@@ -20,7 +20,8 @@ def test_index_returns_html():
 
 def test_login_success():
     client = dashboard.app.test_client()
-    resp = client.post("/login", json={"username": "saee", "password": "saee123"})
+    # Password matches the new format: saratthya<username>072026
+    resp = client.post("/login", json={"username": "saee", "password": "saratthyasaee072026"})
     assert resp.status_code == 200
     data = json.loads(resp.data)
     assert data["ok"] is True

@@ -8,19 +8,16 @@ from src.core.command_parser import parse_command, CommandType, AGENT_ALIASES
 from src.core.response_formatter import format_response
 from src.core.session_manager import SessionManager
 from src.core.message_logger import MessageMiddleware, log_requirement
-from src.core.content_loader import get_skill_content, get_agent_content
+from src.core.content_loader import get_skill_content, get_agent_content, get_persona_content
 
 session_manager = SessionManager()
 
 
-def _build_prompt(agent_name: str, agent_content: str, skill_names: list[str], task: str) -> str:
-    """Build a hierarchical prompt: agent as persona, skills as reference, task as request.
-
-    For Ollama mode — both agent and skills are injected as context.
-    For opencode cloud mode — the agent_name + skills_context is passed in the task.
-    Returns (prompt_string_for_ollama, context_string_for_cloud).
-    """
+def _build_prompt(agent_name: str, agent_content: str, skill_names: list[str], task: str,
+                  persona_name: str = "", persona_content: str = "") -> str:
     parts = []
+    if persona_name and persona_content:
+        parts.append(f"[Persona: {persona_name}]\nYou ARE {persona_name}. {persona_content[:2000]}")
     if agent_name and agent_content:
         agent_body = agent_content[:2500]
         parts.append(f"[Agent: {agent_name}]\n{agent_body}")
@@ -63,6 +60,8 @@ def _handle_message(phone: str, text: str, model_override: Optional[str] = None)
 
     # Merge session skills with inline skills
     session_skills = list(session.current_skills)
+    session_persona = session.current_persona or ""
+    persona_content = get_persona_content(session_persona) if session_persona else ""
 
     cmd_type, cleaned_text, model = _resolve_model(phone, text, model_override)
 
@@ -78,7 +77,8 @@ def _handle_message(phone: str, text: str, model_override: Optional[str] = None)
         result = None
 
     if cmd_type == CommandType.AGENT:
-        result = execute_agent(cleaned_text, model, extra_skills=session_skills)
+        result = execute_agent(cleaned_text, model, extra_skills=session_skills,
+                               persona=session_persona, persona_content=persona_content)
 
     if cmd_type == CommandType.SKILL:
         import re as _re
@@ -89,7 +89,8 @@ def _handle_message(phone: str, text: str, model_override: Optional[str] = None)
             all_skills = list(session_skills)
             if _skill_name not in all_skills:
                 all_skills.append(_skill_name)
-            result = execute_agent(f"{_agent_alias}: {_task}", model, extra_skills=all_skills)
+            result = execute_agent(f"{_agent_alias}: {_task}", model, extra_skills=all_skills,
+                                   persona=session_persona, persona_content=persona_content)
         else:
             # skill: name: task — use skill as context for plain opencode call
             _m = _re.match(r'^(\S+?):\s*(.*)', cleaned_text, _re.DOTALL)
@@ -100,9 +101,10 @@ def _handle_message(phone: str, text: str, model_override: Optional[str] = None)
                 if _skill_name not in all_skills:
                     all_skills.append(_skill_name)
                 if session.current_agent:
-                    result = execute_agent(f"{session.current_agent}: {_task}", model, extra_skills=all_skills)
+                    result = execute_agent(f"{session.current_agent}: {_task}", model, extra_skills=all_skills,
+                                           persona=session_persona, persona_content=persona_content)
                 else:
-                    _prompt = _build_prompt("", "", all_skills, _task) if get_skill_content(_skill_name) else _task
+                    _prompt = _build_prompt("", "", all_skills, _task, persona_name=session_persona, persona_content=persona_content) if get_skill_content(_skill_name) else _task
                     result = run_opencode(_prompt, model=model)
 
     if result is None:
@@ -170,9 +172,11 @@ def execute_file_op(command: str) -> str:
     return "File operations: read <path>"
 
 
-def execute_agent(command: str, model: str, extra_skills: Optional[list[str]] = None) -> str:
+def execute_agent(command: str, model: str, extra_skills: Optional[list[str]] = None,
+                  persona: str = "", persona_content: str = "") -> str:
     """Handle agent: prefix — routes to opencode agent with tool execution.
     extra_skills: additional skill names to inject as context alongside the agent.
+    persona/persona_content: voice/style persona to apply on top of agent.
     """
     parts = command.strip().split(maxsplit=1)
     if not parts:
@@ -189,17 +193,19 @@ def execute_agent(command: str, model: str, extra_skills: Optional[list[str]] = 
     agent_content = get_agent_content(agent_name)
     skills_list = extra_skills or []
 
+    pb = dict(persona_name=persona, persona_content=persona_content)
+
     if model and model.startswith("ollama/"):
-        prompt = _build_prompt(agent_name, agent_content, skills_list, task)
+        prompt = _build_prompt(agent_name, agent_content, skills_list, task, **pb)
         result = run_ollama(prompt, model)
     elif model and model.startswith("mlx/"):
-        prompt = _build_prompt(agent_name, agent_content, skills_list, task)
+        prompt = _build_prompt(agent_name, agent_content, skills_list, task, **pb)
         result = run_mlx(prompt, model)
     elif model and (model.startswith("opencode-go/") or model.startswith("opencode/")):
-        context = _build_prompt(agent_name, agent_content, skills_list, task)
+        context = _build_prompt(agent_name, agent_content, skills_list, task, **pb)
         result = run_opencode_cli(context, model)
     else:
-        context = _build_prompt(agent_name, agent_content, skills_list, task)
+        context = _build_prompt(agent_name, agent_content, skills_list, task, **pb)
         result = run_agent(agent_name, context)
         if _is_agent_fallback_needed(result):
             result = run_opencode_cli(context, model)
