@@ -773,20 +773,20 @@
                             <span class="empty-card-title">Simple Chat</span>
                             <span class="empty-card-desc">Ask anything, get answers</span>
                         </div>
-                        <div class="empty-card" onclick="document.getElementById('chat-input').placeholder='Pick a persona below or click 🎭'; toggleCatalogue()">
+                        <div class="empty-card" onclick="if(allPersonas.length) showPersonaPickerFromCard(); else toggleCatalogue()">
                             <span class="empty-card-icon">🎭</span>
                             <span class="empty-card-title">Pick a Persona</span>
                             <span class="empty-card-desc">Chat as Miranda, José, or The Rock</span>
-                        </div>
-                        <div class="empty-card" onclick="sendExample('code: build a todo app')">
-                            <span class="empty-card-icon">📝</span>
-                            <span class="empty-card-title">Generate Code</span>
-                            <span class="empty-card-desc">Build apps, scripts, tools</span>
                         </div>
                         <div class="empty-card" onclick="toggleCatalogue()">
                             <span class="empty-card-icon">👨‍💻</span>
                             <span class="empty-card-title">Hire an Agent</span>
                             <span class="empty-card-desc">CTO, Engineer, Growth expert</span>
+                        </div>
+                        <div class="empty-card" onclick="sendExample('code: build a todo app')">
+                            <span class="empty-card-icon">📝</span>
+                            <span class="empty-card-title">Generate Code</span>
+                            <span class="empty-card-desc">Build apps, scripts, tools</span>
                         </div>
                     </div>
                     <div class="empty-section-label">🎭 Try a Persona</div>
@@ -1100,21 +1100,21 @@
                                 <span class="empty-card-title">Simple Chat</span>
                                 <span class="empty-card-desc">Ask anything, get answers</span>
                             </div>
-                            <div class="empty-card" onclick="toggleCatalogue()">
-                                <span class="empty-card-icon">🎭</span>
-                                <span class="empty-card-title">Pick a Persona</span>
-                                <span class="empty-card-desc">Chat as Miranda, Jos\u00e9, or The Rock</span>
-                            </div>
+                        <div class="empty-card" onclick="if(allPersonas.length) showPersonaPickerFromCard(); else toggleCatalogue()">
+                            <span class="empty-card-icon">🎭</span>
+                            <span class="empty-card-title">Pick a Persona</span>
+                            <span class="empty-card-desc">Chat as Miranda, José, or The Rock</span>
+                        </div>
                             <div class="empty-card" onclick="sendExample('code: build a todo app')">
                                 <span class="empty-card-icon">📝</span>
                                 <span class="empty-card-title">Generate Code</span>
                                 <span class="empty-card-desc">Build apps, scripts, tools</span>
                             </div>
-                            <div class="empty-card" onclick="sendExample('agent: cto: design a login system')">
-                                <span class="empty-card-icon">👨\u200d💻</span>
-                                <span class="empty-card-title">Hire an Agent</span>
-                                <span class="empty-card-desc">CTO, Engineer, Growth expert</span>
-                            </div>
+                        <div class="empty-card" onclick="toggleCatalogue()">
+                            <span class="empty-card-icon">👨‍💻</span>
+                            <span class="empty-card-title">Hire an Agent</span>
+                            <span class="empty-card-desc">CTO, Engineer, Growth expert</span>
+                        </div>
                         </div>
                         <div class="empty-section-label">🎭 Try a Persona</div>
                         <div class="empty-personas" id="empty-personas"></div>
@@ -1315,6 +1315,49 @@
         function closePersonaPopup() {
             const p = document.getElementById('persona-popup');
             if (p) p.remove();
+        }
+
+        function showPersonaPickerFromCard() {
+            // Show the persona picker centered on screen
+            if (!allPersonas.length) {
+                fetch('/api/personas').then(r => r.json()).then(d => {
+                    allPersonas = d.personas || [];
+                    _showPersonaPopupCentered();
+                }).catch(() => {});
+                return;
+            }
+            _showPersonaPopupCentered();
+        }
+
+        function _showPersonaPopupCentered() {
+            closePersonaPopup();
+            const popup = document.createElement('div');
+            popup.id = 'persona-popup';
+            popup.className = 'persona-popup';
+            popup.style.position = 'fixed';
+            popup.style.top = '50%';
+            popup.style.left = '50%';
+            popup.style.transform = 'translate(-50%, -50%)';
+            let html = '<div class="persona-popup-header">Choose a Persona</div>';
+            if (!allPersonas.length) {
+                html += '<div class="persona-option" style="color:var(--text-muted)">No personas available</div>';
+            } else {
+                allPersonas.forEach(p => {
+                    const active = currentPersona === p.name ? ' active' : '';
+                    html += `<div class="persona-option${active}" onclick="closePersonaPopup(); setPersona('${escHtml(p.name)}')">🎭 ${escHtml(p.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}</div>`;
+                });
+            }
+            if (currentPersona) {
+                html += `<div class="persona-option persona-clear" onclick="closePersonaPopup(); clearPersona(event)">Clear persona <span>&times;</span></div>`;
+            }
+            popup.innerHTML = html;
+            document.body.appendChild(popup);
+            setTimeout(() => {
+                document.addEventListener('click', function h() {
+                    closePersonaPopup();
+                    document.removeEventListener('click', h);
+                }, {once: true});
+            }, 50);
         }
 
         function setPersona(name) {
