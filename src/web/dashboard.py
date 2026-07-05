@@ -50,17 +50,12 @@ REPO = os.environ.get("SARATTHYA_REPO", "NinadAGokhale/local-ai-system")
 GH_PROJECT = os.environ.get("SARATTHYA_GH_PROJECT", "1")
 GH_OWNER = os.environ.get("SARATTHYA_GH_OWNER", "NinadAGokhale")
 
-_USERS_ENV = {
-    "saee":    "SAEE_PASSWORD",
-    "ninad":   "NINAD_PASSWORD",
-    "shounak": "SHOUNAK_PASSWORD",
-    "sohum":   "SOHUM_PASSWORD",
-}
 USERS = {}
-for _u, _ev in _USERS_ENV.items():
-    _pw = os.environ.get(f"SARATTHYA_{_ev}")
-    if _pw:
-        USERS[_u] = _pw
+for _key, _pw in os.environ.items():
+    if _key.startswith("SARATTHYA_") and _key.endswith("_PASSWORD"):
+        _username = _key[len("SARATTHYA_"):-len("_PASSWORD")].lower()
+        if _pw:
+            USERS[_username] = _pw
 
 
 def login_required(f):

@@ -274,7 +274,23 @@
             background: var(--surface);
             transition: background 0.25s, border-color 0.25s;
         }
-        .chat-header .title { font-size: 13px; color: var(--text-dim); }
+        .chat-header .title { font-size: 13px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+        .chat-header .title-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-header .title-edit-icon {
+            font-size: 11px; cursor: pointer; opacity: 0.3; padding: 2px 4px;
+            border-radius: 4px; transition: opacity 0.2s; user-select: none; flex-shrink: 0;
+        }
+        .chat-header .title-edit-icon:hover { opacity: 0.8; background: var(--surface-2); }
+        .chat-header .title-input {
+            font-size: 13px; color: var(--text); background: var(--surface-2);
+            border: 1px solid var(--orange); border-radius: 6px; padding: 2px 8px;
+            outline: none; font-family: var(--font); width: 100%;
+        }
+        .chat-pin-btn {
+            font-size: 15px; cursor: pointer; background: none; border: none;
+            padding: 2px 4px; border-radius: 4px; opacity: 0.5; transition: opacity 0.2s; line-height: 1;
+        }
+        .chat-pin-btn:hover { opacity: 1; background: var(--surface-2); }
         .chat-header .actions { display: flex; gap: 6px; align-items: center; }
         .chat-header .actions button {
             background: none;
@@ -673,16 +689,22 @@
 
     <!-- ─── Main Chat ─── -->
     <div class="main">
-        <div class="chat-header">
-            <span class="title"><button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">☰</button> Chat</span>
-            <div class="actions">
-                <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
-                <button onclick="toggleCatalogue()">Catalogue</button>
-                <button onclick="downloadChat('json')" title="Download chat as JSON">📄</button>
-                <button onclick="downloadChat('txt')" title="Download chat as TXT">📋</button>
-                <button onclick="window.location.href='/logout'" class="logout-btn" title="Logout">⇥</button>
-            </div>
-        </div>
+         <div class="chat-header">
+             <span class="title" id="chat-title">
+                 <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">☰</button> 
+                 <span id="chat-title-text" class="title-text">Chat</span>
+                 <span id="chat-title-edit-icon" class="title-edit-icon" onclick="startRenameTitle()" title="Rename conversation">✎</span>
+                 <input id="chat-title-input" class="title-input" style="display:none" maxlength="80">
+             </span>
+             <div class="actions">
+                 <button id="chat-pin-btn" class="chat-pin-btn" onclick="togglePinCurrent()" title="Pin" style="display:none">📌</button>
+                 <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+                 <button onclick="toggleCatalogue()">Catalogue</button>
+                 <button onclick="downloadChat('json')" title="Download chat as JSON">📄</button>
+                 <button onclick="downloadChat('txt')" title="Download chat as TXT">📋</button>
+                 <button onclick="window.location.href='/logout'" class="logout-btn" title="Logout">⇥</button>
+             </div>
+         </div>
 
         <!-- Active mode indicator -->
         <div class="mode-bar" id="mode-bar"></div>
@@ -844,16 +866,77 @@
         let acMode = null; // 'agent' or 'skill'
         let acFilter = '';
 
+        // ─── Chat header state ───
+        let currentConvId = '__current__';
+        let currentConvTitle = 'Chat';
+        let currentConvPinned = false;
+
+        function updateChatHeader() {
+            document.getElementById('chat-title-text').textContent = currentConvTitle;
+            const pinBtn = document.getElementById('chat-pin-btn');
+            pinBtn.textContent = currentConvPinned ? '📍' : '📌';
+            pinBtn.title = currentConvPinned ? 'Unpin' : 'Pin';
+            pinBtn.style.display = currentConvId !== '__current__' ? '' : 'none';
+        }
+
+        function syncCurrentConv(convs) {
+            const active = (convs || []).find(c => c.active);
+            if (active) {
+                currentConvId = active.id;
+                currentConvTitle = active.title || 'Chat';
+                currentConvPinned = active.pinned || false;
+            } else {
+                currentConvId = '__current__';
+                currentConvTitle = 'Chat';
+                currentConvPinned = false;
+            }
+            updateChatHeader();
+        }
+
+        function togglePinCurrent() {
+            if (currentConvId === '__current__') return;
+            togglePin(currentConvId);
+        }
+
+        function startRenameTitle() {
+            if (currentConvId === '__current__') return;
+            const textEl = document.getElementById('chat-title-text');
+            const inputEl = document.getElementById('chat-title-input');
+            const iconEl = document.getElementById('chat-title-edit-icon');
+            textEl.style.display = 'none';
+            iconEl.style.display = 'none';
+            inputEl.style.display = '';
+            inputEl.value = currentConvTitle;
+            inputEl.focus();
+            inputEl.select();
+            inputEl.onkeydown = function(e) {
+                if (e.key === 'Enter') inputEl.blur();
+                else if (e.key === 'Escape') { inputEl.value = currentConvTitle; inputEl.blur(); }
+            };
+            inputEl.onblur = function() { saveRename(inputEl.value.trim()); };
+        }
+
+        function saveRename(title) {
+            const textEl = document.getElementById('chat-title-text');
+            const inputEl = document.getElementById('chat-title-input');
+            const iconEl = document.getElementById('chat-title-edit-icon');
+            inputEl.style.display = 'none';
+            textEl.style.display = '';
+            iconEl.style.display = '';
+            if (title && title !== currentConvTitle) {
+                renameConv(currentConvId, title);
+            }
+        }
+
         // ─── Render conversation sidebar ───
         function renderConversations(convs) {
             const list = document.getElementById('conv-list');
-            // Sort: pinned first, then by order
             const sorted = [...convs].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
             list.innerHTML = sorted.map(c => `
                 <div class="conv-item${c.active ? ' active' : ''}${c.pinned ? ' pinned' : ''}">
                     <span class="conv-icon">${c.active ? '💬' : '📋'}</span>
                     <div class="conv-info" onclick="switchConv('${c.id}')">
-                        <div class="conv-title conv-title-edit" onclick="event.stopPropagation(); renameConv('${c.id}', '${escHtml(c.title || '').replace(/'/g, "\\'")}')" title="Click to rename">${escHtml(c.title || 'New Chat')}</div>
+                        <div class="conv-title">${escHtml(c.title || 'New Chat')}</div>
                     </div>
                     <span class="conv-pin" onclick="event.stopPropagation(); togglePin('${c.id}')" title="${c.pinned ? 'Unpin' : 'Pin this chat'}">${c.pinned ? '📍' : '📌'}</span>
                 </div>
@@ -869,20 +952,20 @@
                 });
                 const convs = await r.json();
                 renderConversations(convs);
+                syncCurrentConv(convs);
             } catch(e) {}
         }
 
-        async function renameConv(convId, currentTitle) {
-            const title = prompt('Rename conversation:', currentTitle || '');
-            if (title === null || title === currentTitle) return;
+        async function renameConv(convId, newTitle) {
             try {
                 const r = await fetch('/api/conversations/rename', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({conv_id: convId, title: title}),
+                    body: JSON.stringify({conv_id: convId, title: newTitle}),
                 });
                 const convs = await r.json();
                 renderConversations(convs);
+                syncCurrentConv(convs);
             } catch(e) {}
         }
 
@@ -891,6 +974,7 @@
                 const r = await fetch('/api/conversations');
                 const convs = await r.json();
                 renderConversations(convs);
+                syncCurrentConv(convs);
             } catch(e) { console.error('Failed to load conversations:', e); }
         }
 
