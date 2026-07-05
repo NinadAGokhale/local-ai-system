@@ -20,7 +20,7 @@ def test_index_returns_html():
 
 def test_login_success():
     client = dashboard.app.test_client()
-    resp = client.post("/login", json={"username": "user", "password": "password123"})
+    resp = client.post("/login", json={"username": "saee", "password": "saee123"})
     assert resp.status_code == 200
     data = json.loads(resp.data)
     assert data["ok"] is True
@@ -28,7 +28,7 @@ def test_login_success():
 
 def test_login_failure():
     client = dashboard.app.test_client()
-    resp = client.post("/login", json={"username": "user", "password": "wrong"})
+    resp = client.post("/login", json={"username": "saee", "password": "wrong"})
     assert resp.status_code == 401
 
 

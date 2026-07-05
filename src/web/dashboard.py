@@ -14,17 +14,42 @@ from src.core.command_parser import parse_command, CommandType
 from src.core.session_manager import SessionManager
 from src.core.handler import handle_message
 
+_DOT_ENV = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(_DOT_ENV):
+    for _line in open(_DOT_ENV):
+        _line = _line.strip()
+        if _line and not _line.startswith('#') and '=' in _line:
+            _k, _v = _line.split('=', 1)
+            os.environ.setdefault(_k.strip(), _v.strip())
+
 session_manager = SessionManager()
 
 app = Flask(__name__,
     template_folder=os.path.join(os.path.dirname(__file__), 'templates'),
     static_folder=os.path.join(os.path.dirname(__file__), 'static'))
-app.secret_key = os.urandom(24).hex()
+_SECRET_KEY_FILE = os.path.join(os.path.dirname(__file__), '.secret_key')
+if os.path.exists(_SECRET_KEY_FILE):
+    app.secret_key = open(_SECRET_KEY_FILE).read().strip()
+else:
+    app.secret_key = os.urandom(24).hex()
+    with open(_SECRET_KEY_FILE, 'w') as f:
+        f.write(app.secret_key)
 
-REPO = "NinadAGokhale/local-ai-system"
+REPO = os.environ.get("SARATTHYA_REPO", "NinadAGokhale/local-ai-system")
+GH_PROJECT = os.environ.get("SARATTHYA_GH_PROJECT", "1")
+GH_OWNER = os.environ.get("SARATTHYA_GH_OWNER", "NinadAGokhale")
 
-LOGIN_USER = "user"
-LOGIN_PASS = "password123"
+_USERS_ENV = {
+    "saee":    "SAEE_PASSWORD",
+    "ninad":   "NINAD_PASSWORD",
+    "shounak": "SHOUNAK_PASSWORD",
+    "sohum":   "SOHUM_PASSWORD",
+}
+USERS = {}
+for _u, _ev in _USERS_ENV.items():
+    _pw = os.environ.get(f"SARATTHYA_{_ev}")
+    if _pw:
+        USERS[_u] = _pw
 
 
 def login_required(f):
@@ -40,10 +65,14 @@ def login_required(f):
 def login():
     if request.method == "POST":
         data = request.get_json() or request.form
-        if data.get("username") == LOGIN_USER and data.get("password") == LOGIN_PASS:
+        username = data.get("username", "").strip().lower()
+        password = data.get("password", "")
+        expected = USERS.get(username)
+        if expected is not None and password == expected:
             session["logged_in"] = True
+            session["username"] = username
             if request.is_json:
-                return jsonify({"ok": True})
+                return jsonify({"ok": True, "username": username})
             return redirect(url_for("index"))
         if request.is_json:
             return jsonify({"ok": False, "error": "Invalid credentials"}), 401
@@ -69,6 +98,7 @@ def index():
         current_history=s.history,
         current_agent=s.current_agent,
         current_skill=s.current_skill,
+        username=session.get("username", "user"),
     ))
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     resp.headers["Pragma"] = "no-cache"
@@ -225,6 +255,12 @@ def api_chat():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/me")
+@login_required
+def api_me():
+    return jsonify({"username": session.get("username", "unknown")})
+
+
 @app.route("/api/chat/download", methods=["GET"])
 def api_chat_download():
     phone = request.args.get("phone", "web-ui")
@@ -364,7 +400,7 @@ def create_github_issue(text: str) -> str:
 def gh_project_add(issue_url: str):
     try:
         subprocess.run(
-            ["gh", "project", "item-add", "1", "--owner", "NinadAGokhale",
+            ["gh", "project", "item-add", GH_PROJECT, "--owner", GH_OWNER,
              "--url", issue_url],
             capture_output=True, timeout=15,
         )

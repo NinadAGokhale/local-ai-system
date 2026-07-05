@@ -10,3 +10,6 @@ Saratthya-opening-page-with-image.jpeg
 support-doc/
 reports/
 context_magament/
+
+src/web/.env
+src/web/.secret_key
