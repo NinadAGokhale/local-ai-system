@@ -224,11 +224,10 @@
         .conv-pin:hover { opacity: 1; background: var(--surface-2); }
         .conv-item.pinned .conv-pin { opacity: 0.8; }
         .conv-del {
-            font-size: 12px; cursor: pointer; opacity: 0; padding: 2px 4px;
+            font-size: 11px; cursor: pointer; opacity: 0.35; padding: 3px 5px;
             border-radius: 4px; transition: all 0.2s; user-select: none; flex-shrink: 0;
             color: var(--text-muted);
         }
-        .conv-item:hover .conv-del { opacity: 0.4; }
         .conv-del:hover { opacity: 1 !important; color: #ef4444; background: var(--surface-2); }
         .conv-title-edit {
             cursor: pointer;
@@ -284,10 +283,10 @@
         .chat-header .title { font-size: 13px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
         .chat-header .title-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .chat-header .title-edit-icon {
-            font-size: 11px; cursor: pointer; opacity: 0.3; padding: 2px 4px;
-            border-radius: 4px; transition: opacity 0.2s; user-select: none; flex-shrink: 0;
+            font-size: 13px; cursor: pointer; opacity: 0.4; padding: 2px 6px;
+            border-radius: 4px; transition: all 0.2s; user-select: none; flex-shrink: 0;
         }
-        .chat-header .title-edit-icon:hover { opacity: 0.8; background: var(--surface-2); }
+        .chat-header .title-edit-icon:hover { opacity: 1; background: var(--surface-2); color: var(--orange); }
         .chat-header .title-input {
             font-size: 13px; color: var(--text); background: var(--surface-2);
             border: 1px solid var(--orange); border-radius: 6px; padding: 2px 8px;
@@ -589,38 +588,31 @@
 
         /* Empty state */
         .empty-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; height: 100%; padding: 40px 20px;
             text-align: center;
-            color: var(--text-muted);
-            padding: 40px;
         }
-        .empty-state .big-logo {
-            width: 56px; height: 56px;
-            border-radius: 16px;
-            margin-bottom: 16px;
-            overflow: hidden;
+        .empty-hero { margin-bottom: 28px; }
+        .empty-hero .big-logo {
+            width: 56px; height: 56px; border-radius: 14px; margin: 0 auto 14px; overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
         }
-        .empty-state .big-logo img { width: 100%; height: 100%; object-fit: cover; }
-        .empty-state h2 { font-size: 18px; font-weight: 700; color: var(--text-dim); margin-bottom: 6px; letter-spacing: -0.3px; }
-        .empty-state p { font-size: 13px; line-height: 1.6; max-width: 340px; letter-spacing: 0.1px; }
-        .empty-state .example-chips {
-            display: flex; flex-wrap: wrap; gap: 6px;
-            justify-content: center; margin-top: 14px;
+        .empty-hero .big-logo img { width: 100%; height: 100%; object-fit: cover; }
+        .empty-hero h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+        .empty-hero .empty-sub { font-size: 12px; color: var(--text-muted); max-width: 280px; margin: 0 auto; line-height: 1.4; }
+        .empty-cards {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            max-width: 380px; width: 100%;
         }
-        .empty-state .example-chips span {
-            padding: 5px 12px;
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            font-size: 11px;
-            color: var(--text-dim);
-            cursor: pointer;
+        .empty-card {
+            background: var(--surface-2); border: 1px solid var(--border);
+            border-radius: 12px; padding: 14px 12px; cursor: pointer;
+            transition: all 0.2s; text-align: left;
         }
-        .empty-state .example-chips span:hover { border-color: var(--orange); color: var(--orange-light); }
+        .empty-card:hover { border-color: var(--orange); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+        .empty-card-icon { font-size: 18px; display: block; margin-bottom: 6px; }
+        .empty-card-title { font-size: 12px; font-weight: 600; display: block; color: var(--text); margin-bottom: 2px; }
+        .empty-card-desc { font-size: 10px; color: var(--text-muted); display: block; }
 
         /* ─── Sidebar collapse ─── */
         .sidebar {
@@ -684,8 +676,7 @@
             .msg-bubble { max-width: 90%; font-size: 15px; padding: 10px 14px; }
             .chat-header .title { font-size: 12px; }
             .input-row textarea { font-size: 16px; }
-            .empty-state p { font-size: 14px; }
-            .empty-state h2 { font-size: 20px; }
+            .empty-hero h2 { font-size: 20px; }
         }
     </style>
 </head>
@@ -757,14 +748,32 @@
                 {% endfor %}
             {% else %}
                 <div class="empty-state" id="empty-state">
-                    <div class="big-logo"><img src="/static/logo.jpeg" alt="Saratthya"></div>
-                    <h2>Saratthya</h2>
-                    <p>Agentic Market Analytics &amp; Business Development. Choose an agent or send a message to start.</p>
-                    <div class="example-chips">
-                        <span onclick="sendExample('code: build a todo app')">code: build a todo app</span>
-                        <span onclick="sendExample('explain: what is a transformer')">explain: transformer</span>
-                        <span onclick="sendExample('status')">status</span>
-                        <span onclick="sendExample('agent: engineer: design a login system')">agent: engineer</span>
+                    <div class="empty-hero">
+                        <div class="big-logo"><img src="/static/logo.jpeg" alt="Saratthya"></div>
+                        <h2>Saratthya</h2>
+                        <p class="empty-sub">Agentic Market Analytics &amp; Business Development</p>
+                    </div>
+                    <div class="empty-cards">
+                        <div class="empty-card" onclick="sendExample('hi')">
+                            <span class="empty-card-icon">💬</span>
+                            <span class="empty-card-title">Simple Chat</span>
+                            <span class="empty-card-desc">Ask anything, get answers</span>
+                        </div>
+                        <div class="empty-card" onclick="toggleCatalogue()">
+                            <span class="empty-card-icon">🎭</span>
+                            <span class="empty-card-title">Pick a Persona</span>
+                            <span class="empty-card-desc">Chat as Miranda, José, or The Rock</span>
+                        </div>
+                        <div class="empty-card" onclick="sendExample('code: build a todo app')">
+                            <span class="empty-card-icon">📝</span>
+                            <span class="empty-card-title">Generate Code</span>
+                            <span class="empty-card-desc">Build apps, scripts, tools</span>
+                        </div>
+                        <div class="empty-card" onclick="sendExample('agent: cto: design a login system')">
+                            <span class="empty-card-icon">👨‍💻</span>
+                            <span class="empty-card-title">Hire an Agent</span>
+                            <span class="empty-card-desc">CTO, Engineer, Growth expert</span>
+                        </div>
                     </div>
                 </div>
             {% endif %}
@@ -1054,14 +1063,32 @@
             if (!history || !history.length) {
                 container.innerHTML = `
                     <div class="empty-state" id="empty-state">
-                        <div class="big-logo"><img src="/static/logo.jpeg" alt="Saratthya"></div>
-                        <h2>Saratthya</h2>
-                        <p>Agentic Market Analytics &amp; Business Development. Choose an agent or send a message to start.</p>
-                        <div class="example-chips">
-                            <span onclick="sendExample('code: build a todo app')">code: build a todo app</span>
-                            <span onclick="sendExample('explain: what is a transformer')">explain: transformer</span>
-                            <span onclick="sendExample('status')">status</span>
-                            <span onclick="sendExample('agent: engineer: design a login system')">agent: engineer</span>
+                        <div class="empty-hero">
+                            <div class="big-logo"><img src="/static/logo.jpeg" alt="Saratthya"></div>
+                            <h2>Saratthya</h2>
+                            <p class="empty-sub">Agentic Market Analytics &amp; Business Development</p>
+                        </div>
+                        <div class="empty-cards">
+                            <div class="empty-card" onclick="sendExample('hi')">
+                                <span class="empty-card-icon">💬</span>
+                                <span class="empty-card-title">Simple Chat</span>
+                                <span class="empty-card-desc">Ask anything, get answers</span>
+                            </div>
+                            <div class="empty-card" onclick="toggleCatalogue()">
+                                <span class="empty-card-icon">🎭</span>
+                                <span class="empty-card-title">Pick a Persona</span>
+                                <span class="empty-card-desc">Chat as Miranda, Jos\u00e9, or The Rock</span>
+                            </div>
+                            <div class="empty-card" onclick="sendExample('code: build a todo app')">
+                                <span class="empty-card-icon">📝</span>
+                                <span class="empty-card-title">Generate Code</span>
+                                <span class="empty-card-desc">Build apps, scripts, tools</span>
+                            </div>
+                            <div class="empty-card" onclick="sendExample('agent: cto: design a login system')">
+                                <span class="empty-card-icon">👨\u200d💻</span>
+                                <span class="empty-card-title">Hire an Agent</span>
+                                <span class="empty-card-desc">CTO, Engineer, Growth expert</span>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -1103,7 +1130,13 @@
             const typing = document.createElement('div');
             typing.id = 'typing-indicator';
             typing.className = 'typing-indicator';
-            typing.innerHTML = 'Saratthya is thinking<span class="typing-dots"></span>';
+            let label = 'Saratthya';
+            if (currentPersona) {
+                label = currentPersona.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            } else if (currentAgent) {
+                label = currentAgent;
+            }
+            typing.innerHTML = `<strong>${label}</strong> is thinking<span class="typing-dots"></span>`;
             container.appendChild(typing);
             scrollToBottom();
         }
@@ -1128,14 +1161,29 @@
             bubble.textContent = text;
             group.appendChild(bubble);
 
-            if (role === 'bot' && meta && meta.latency) {
+            if (role === 'bot' && meta) {
                 const metaDiv = document.createElement('div');
                 metaDiv.className = 'msg-meta bot-meta';
-                const badge = document.createElement('span');
-                badge.className = 'time-badge';
-                badge.textContent = meta.latency;
-                metaDiv.appendChild(badge);
-                group.appendChild(metaDiv);
+                const parts = [];
+                if (meta.latency) {
+                    const badge = document.createElement('span');
+                    badge.className = 'time-badge';
+                    badge.textContent = meta.latency;
+                    metaDiv.appendChild(badge);
+                }
+                if (meta.model) {
+                    const badge = document.createElement('span');
+                    badge.className = 'time-badge';
+                    badge.textContent = meta.model;
+                    metaDiv.appendChild(badge);
+                }
+                if (currentPersona) {
+                    const badge = document.createElement('span');
+                    badge.className = 'time-badge';
+                    badge.textContent = '🎭 ' + currentPersona.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                    metaDiv.appendChild(badge);
+                }
+                if (metaDiv.children.length) group.appendChild(metaDiv);
             }
 
             container.appendChild(group);
