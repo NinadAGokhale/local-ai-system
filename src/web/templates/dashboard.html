@@ -773,7 +773,7 @@
                             <span class="empty-card-title">Simple Chat</span>
                             <span class="empty-card-desc">Ask anything, get answers</span>
                         </div>
-                        <div class="empty-card" onclick="toggleCatalogue()">
+                        <div class="empty-card" onclick="document.getElementById('chat-input').placeholder='Pick a persona below or click 🎭'; toggleCatalogue()">
                             <span class="empty-card-icon">🎭</span>
                             <span class="empty-card-title">Pick a Persona</span>
                             <span class="empty-card-desc">Chat as Miranda, José, or The Rock</span>
@@ -783,7 +783,7 @@
                             <span class="empty-card-title">Generate Code</span>
                             <span class="empty-card-desc">Build apps, scripts, tools</span>
                         </div>
-                        <div class="empty-card" onclick="sendExample('agent: cto: design a login system')">
+                        <div class="empty-card" onclick="toggleCatalogue()">
                             <span class="empty-card-icon">👨‍💻</span>
                             <span class="empty-card-title">Hire an Agent</span>
                             <span class="empty-card-desc">CTO, Engineer, Growth expert</span>
@@ -843,6 +843,10 @@
                     <h3>Skills <span class="agent-count" id="skill-count"></span></h3>
                     <input class="cat-search" id="skill-search" type="text" placeholder="Search skills..." oninput="filterCatalogue()">
                     <div class="cat-grid" id="catalogue-skills"></div>
+                </div>
+                <div class="modal-section">
+                    <h3>Personas <span class="agent-count" id="persona-count"></span></h3>
+                    <div class="cat-grid" id="catalogue-personas"></div>
                 </div>
             </div>
         </div>
@@ -1656,6 +1660,13 @@
             skillGrid.innerHTML = filteredSkills.map(s =>
                 `<div class="cat-card" onclick="setModeFromCatalogue('skill','${escHtml(s.name)}')" title="${escHtml(s.description || '')}"><span class="cat-pfx">$</span> ${s.name}</div>`
             ).join('');
+
+            const personaGrid = document.getElementById('catalogue-personas');
+            const personaCount = document.getElementById('persona-count');
+            personaCount.textContent = `(${allPersonas.length})`;
+            personaGrid.innerHTML = allPersonas.map(p =>
+                `<div class="cat-card" onclick="setPersonaFromCatalogue('${escHtml(p.name)}')">🎭 ${escHtml(p.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}</div>`
+            ).join('');
         }
 
         function filterCatalogue() { renderCatalogue(); }
@@ -1666,6 +1677,11 @@
             } else {
                 setModeSkill(name);
             }
+            toggleCatalogue();
+        }
+
+        function setPersonaFromCatalogue(name) {
+            setPersona(name);
             toggleCatalogue();
         }
 
