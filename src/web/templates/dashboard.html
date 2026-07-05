@@ -223,6 +223,13 @@
         }
         .conv-pin:hover { opacity: 1; background: var(--surface-2); }
         .conv-item.pinned .conv-pin { opacity: 0.8; }
+        .conv-del {
+            font-size: 12px; cursor: pointer; opacity: 0; padding: 2px 4px;
+            border-radius: 4px; transition: all 0.2s; user-select: none; flex-shrink: 0;
+            color: var(--text-muted);
+        }
+        .conv-item:hover .conv-del { opacity: 0.4; }
+        .conv-del:hover { opacity: 1 !important; color: #ef4444; background: var(--surface-2); }
         .conv-title-edit {
             cursor: pointer;
         }
@@ -968,6 +975,7 @@
                         <div class="conv-title">${escHtml(c.title || 'New Chat')}</div>
                     </div>
                     <span class="conv-pin" onclick="event.stopPropagation(); togglePin('${c.id}')" title="${c.pinned ? 'Unpin' : 'Pin this chat'}">${c.pinned ? '📍' : '📌'}</span>
+                    <span class="conv-del" onclick="event.stopPropagation(); deleteConv('${c.id}')" title="Delete conversation">🗑</span>
                 </div>
             `).join('');
         }
@@ -982,6 +990,21 @@
                 const convs = await r.json();
                 renderConversations(convs);
                 syncCurrentConv(convs);
+            } catch(e) {}
+        }
+
+        async function deleteConv(convId) {
+            if (!confirm('Delete this conversation? This cannot be undone.')) return;
+            try {
+                const r = await fetch('/api/conversations/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({conv_id: convId}),
+                });
+                const convs = await r.json();
+                renderConversations(convs);
+                syncCurrentConv(convs);
+                renderMessages([]);
             } catch(e) {}
         }
 
@@ -1380,6 +1403,7 @@
                     body: JSON.stringify({
                         message: msgText,
                         model: selectedModel,
+                        persona: currentPersona || null,
                     }),
                 });
                 const data = await r.json();

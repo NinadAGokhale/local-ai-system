@@ -248,3 +248,23 @@ def test_pinned_shows_in_get_conversations():
     pinned = [c for c in convs if c["id"] == conv_id]
     assert len(pinned) == 1
     assert pinned[0]["pinned"] is True
+
+
+def test_delete_conversation():
+    sm = _test_sm()
+    sm.add_to_history("+1", "user", "to delete")
+    sm.new_conversation("+1")
+    s = sm.get_or_create("+1")
+    assert len(s.conversations) == 1
+    conv_id = s.conversations[0]["id"]
+
+    convs = sm.delete_conversation("+1", conv_id)
+    assert len(s.conversations) == 0
+    assert len(convs) == 0
+
+def test_delete_nonexistent_conversation():
+    sm = _test_sm()
+    sm.add_to_history("+1", "user", "keep me")
+    sm.new_conversation("+1")
+    convs = sm.delete_conversation("+1", "nonexistent")
+    assert len(convs) == 1

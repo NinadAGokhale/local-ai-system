@@ -185,6 +185,15 @@ class SessionManager:
         self._save()
         return self.get_conversations(phone)
 
+    def delete_conversation(self, phone: str, conv_id: str) -> list[dict]:
+        session = self.get_or_create(phone)
+        session.conversations = [c for c in session.conversations if c["id"] != conv_id]
+        if session.current_conv_id == conv_id:
+            session.current_conv_id = None
+            session.history = []
+        self._save()
+        return self.get_conversations(phone)
+
     def set_model(self, phone: str, model: str):
         session = self.get_or_create(phone)
         session.current_model = model

@@ -293,6 +293,17 @@ def api_rename_conversation():
     return jsonify(convs)
 
 
+@app.route("/api/conversations/delete", methods=["POST"])
+def api_delete_conversation():
+    data = request.get_json(silent=True) or {}
+    phone = data.get("phone") or _web_phone()
+    conv_id = data.get("conv_id")
+    if not conv_id:
+        return jsonify({"error": "Missing conv_id"}), 400
+    convs = session_manager.delete_conversation(phone, conv_id)
+    return jsonify(convs)
+
+
 @app.route("/api/chat/new", methods=["POST"])
 def api_chat_new():
     data = request.get_json(silent=True) or {}
@@ -313,6 +324,11 @@ def api_chat():
     model_override = data.get("model")
 
     s = session_manager.get_or_create(phone)
+
+    # Use persona from request if provided (eliminates race condition with async set_persona)
+    if "persona" in data:
+        s.current_persona = data["persona"] or None
+        session_manager._save()
 
     # Only prefix with agent if explicitly set — skills should not auto-prefix.
     # Skills are only activated when user types $skillname: in their message.
