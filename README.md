@@ -61,17 +61,34 @@ Open http://localhost:5002 in your browser.
 
 ### Public URL
 
-The dashboard is available at **https://saratthya-agentic.nport.link** via NPort tunnel (launchd-managed, auto-restarts).
+The dashboard is available at **https://saratthya-agentic-app.nport.link** via NPort tunnel (launchd-managed, auto-restarts).
 
-### Login
+### How to Get Access
 
-Credentials are set via environment variables in `src/web/.env`:
+1. Visit **https://saratthya-agentic-app.nport.link**
+2. Fill out the **Request Access** form with your name, email, and use case
+3. The admin will review your request and send you login credentials if approved
+4. Once you have credentials, click **"Already have an account?"** or visit `/login`
+
+Already approved? Use the **Sign in** link on the request page.
+
+### Adding Users (Admin)
+
+Users are configured via environment variables in `src/web/.env`. Each user needs one line:
 
 ```
-SARATTHYA_SAEE_PASSWORD=your_password
-SARATTHYA_NINAD_PASSWORD=your_password
-SARATTHYA_SHOUNAK_PASSWORD=your_password
-SARATTHYA_SOHUM_PASSWORD=your_password
+SARATTHYA_<USERNAME>_PASSWORD=<password>
+```
+
+The username is derived from the env var name (lowercase, between `SARATTHYA_` and `_PASSWORD`).
+Example: `SARATTHYA_NINAD_PASSWORD=...` creates user `ninad`.
+
+**Never commit `.env` to git** — it's already in `.gitignore`.
+
+Set the admin email for access request notifications:
+
+```
+SARATTHYA_ADMIN_EMAIL=you@example.com
 ```
 
 ## Key Features
