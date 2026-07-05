@@ -6,7 +6,7 @@ import subprocess
 from functools import wraps
 from pathlib import Path
 
-from flask import Flask, make_response, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, make_response, render_template, request, jsonify, session, redirect, url_for, Response
 
 from src.core.config import PROJECT_ROOT
 from src.core.message_logger import get_recent_messages, get_recent_requirements, log_requirement
@@ -203,10 +203,11 @@ def api_chat():
 
     s = session_manager.get_or_create(phone)
 
-    if s.current_agent:
-        message = f"agent: {s.current_agent}: {message}"
+    # Apply active mode prefix — skill takes priority when both active
     if s.current_skill:
         message = f"skill: {s.current_skill}: {message}"
+    elif s.current_agent:
+        message = f"agent: {s.current_agent}: {message}"
 
     session_manager.add_to_history(phone, "user", data["message"])
 
@@ -222,6 +223,22 @@ def api_chat():
     except Exception as e:
         session_manager.add_to_history(phone, "bot", f"Error: {e}", latency_ms=0)
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/chat/download", methods=["GET"])
+def api_chat_download():
+    phone = request.args.get("phone", "web-ui")
+    fmt = request.args.get("format", "json")
+    s = session_manager.get_or_create(phone)
+    if fmt == "txt":
+        lines = []
+        for msg in s.history:
+            role = msg.get("role", "unknown")
+            text = msg.get("content", "")
+            lines.append(f"[{role.upper()}] {text}\n")
+        return Response("\n".join(lines), mimetype="text/plain",
+                        headers={"Content-Disposition": "attachment; filename=chat.txt"})
+    return jsonify(s.history)
 
 
 @app.route("/api/agent", methods=["POST"])

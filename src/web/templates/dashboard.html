@@ -489,6 +489,8 @@
             <span class="title">Chat</span>
             <div class="actions">
                 <button onclick="toggleCatalogue()">Catalogue</button>
+                <button onclick="downloadChat('json')" title="Download chat as JSON">📄</button>
+                <button onclick="downloadChat('txt')" title="Download chat as TXT">📋</button>
                 <button onclick="window.location.href='/logout'" class="logout-btn" title="Logout">⇥</button>
             </div>
         </div>
@@ -1027,9 +1029,10 @@
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 120) + 'px';
             const dd = document.getElementById('ac-dropdown');
+            const cursor = this.selectionStart;
+            const char = cursor > 0 ? this.value[cursor - 1] : '';
+
             if (dd.classList.contains('active')) {
-                // Re-filter on each keystroke while dropdown is open
-                const cursor = this.selectionStart;
                 const text = this.value.slice(0, cursor);
                 if (!text.match(/[@$]/)) {
                     hideAC();
@@ -1037,9 +1040,9 @@
                 }
                 updateACFilter();
                 renderACList();
-            } else if (e && e.data === '@') {
+            } else if (char === '@' && !dd.classList.contains('active')) {
                 showAC('agent');
-            } else if (e && e.data === '$') {
+            } else if (char === '$' && !dd.classList.contains('active')) {
                 showAC('skill');
             }
         });
@@ -1098,6 +1101,15 @@
                 setModeSkill(name);
             }
             toggleCatalogue();
+        }
+
+        function downloadChat(fmt) {
+            const a = document.createElement('a');
+            a.href = `/api/chat/download?format=${fmt}`;
+            a.download = `chat.${fmt === 'txt' ? 'txt' : 'json'}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
 
         function sendExample(text) {

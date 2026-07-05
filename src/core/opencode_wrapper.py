@@ -31,6 +31,8 @@ def _strip_prefix(model: str) -> str:
 
 def run_ollama(command: str, model: str = DEFAULT_MODEL) -> str:
     """Call Ollama directly with a no-tools system prompt. Returns text."""
+    if not model:
+        model = DEFAULT_MODEL
     raw_model = _strip_prefix(model)
     payload = json.dumps({
         "model": raw_model,
@@ -178,6 +180,8 @@ def _try_parse_tool_call(line: str) -> Optional[dict]:
 
 def run_opencode_cli(command: str, model: str = DEFAULT_MODEL) -> str:
     """Run opencode CLI directly with --model (for cloud models like opencode/deepseek-*)."""
+    if not model:
+        model = DEFAULT_MODEL
     try:
         proc = subprocess.run(
             ["opencode", "run", "--model", model, "--auto", command],
@@ -200,6 +204,8 @@ def run_opencode(command: str, model: str = DEFAULT_MODEL) -> str:
     ollama/* -> direct Ollama API (fast, no tools)
     opencode/* -> opencode CLI (skills + tools available)
     """
+    if not model:
+        model = DEFAULT_MODEL
     if model.startswith("opencode/"):
         return run_opencode_cli(command, model)
     return run_ollama(command, model)
