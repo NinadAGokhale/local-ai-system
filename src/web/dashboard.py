@@ -10,9 +10,10 @@ from flask import Flask, make_response, render_template, request, jsonify, sessi
 
 from src.core.config import PROJECT_ROOT
 from src.core.message_logger import get_recent_messages, get_recent_requirements, log_requirement
-from src.core.command_parser import parse_command, CommandType
+from src.core.command_parser import parse_command, CommandType, AGENT_ALIASES
 from src.core.session_manager import SessionManager
 from src.core.handler import handle_message
+from src.core.content_loader import get_skill_content, get_agent_content
 
 _DOT_ENV = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(_DOT_ENV):
@@ -346,6 +347,89 @@ def api_agents():
                 pass
             agents.append({"name": name, "description": desc})
     return jsonify({"agents": agents})
+
+
+@app.route("/api/debug/resolve", methods=["POST"])
+def api_debug_resolve():
+    """Debug endpoint that shows how a message will be processed without executing.
+    Returns the resolved command type, model, extracted skill/agent names, content sizes, etc.
+    """
+    data = request.get_json() or {}
+    message = data.get("message", "")
+    phone = data.get("phone") or _web_phone()
+    model_override = data.get("model")
+
+    s = session_manager.get_or_create(phone)
+    original = message
+
+    if s.current_skill and s.current_agent:
+        message = f"skill: {s.current_skill}: agent: {s.current_agent}: {message}"
+    elif s.current_skill:
+        message = f"skill: {s.current_skill}: {message}"
+    elif s.current_agent:
+        message = f"agent: {s.current_agent}: {message}"
+
+    cmd_type, cleaned_text, resolved_model = parse_command(message)
+    if model_override:
+        resolved_model = model_override
+    elif resolved_model is None:
+        resolved_model = s.current_model
+
+    info = {
+        "original_message": original,
+        "prefixed_message": message if message != original else None,
+        "cmd_type": cmd_type.value,
+        "cleaned_text": cleaned_text,
+        "resolved_model": resolved_model,
+        "session_agent": s.current_agent,
+        "session_skill": s.current_skill,
+    }
+
+    if cmd_type.value == "skill":
+        import re as _re
+        _m1 = _re.match(r'^(\S+?):\s*agent:\s*(\S+?):\s*(.*)', cleaned_text, _re.DOTALL)
+        if _m1:
+            sk, ag, tk = _m1.groups()
+            sc = get_skill_content(sk)
+            ag = AGENT_ALIASES.get(ag, ag)
+            ac = get_agent_content(ag)
+            info["skill_name"] = sk
+            info["skill_content_chars"] = len(sc)
+            info["skill_content_excerpt"] = sc[:200] if sc else ""
+            info["agent_name"] = ag
+            info["agent_content_chars"] = len(ac)
+            info["agent_content_excerpt"] = ac[:200] if ac else ""
+            info["_will_call"] = "execute_agent (combined)"
+            info["_ollama_agent_has_content"] = bool(ac)
+        else:
+            _m2 = _re.match(r'^(\S+?):\s*(.*)', cleaned_text, _re.DOTALL)
+            if _m2:
+                sk, tk = _m2.groups()
+                sc = get_skill_content(sk)
+                info["skill_name"] = sk
+                info["skill_content_chars"] = len(sc)
+                info["skill_content_excerpt"] = sc[:200] if sc else ""
+                info["_will_call"] = "run_opencode (skill-only)"
+                if resolved_model and resolved_model.startswith("ollama/"):
+                    info["_will_call"] = "run_ollama (skill-only)"
+
+    elif cmd_type.value == "agent":
+        parts = cleaned_text.strip().split(maxsplit=1)
+        if parts:
+            an = parts[0].lower().rstrip(":")
+            an = AGENT_ALIASES.get(an, an)
+            ac = get_agent_content(an)
+            info["agent_content_excerpt"] = ac[:200] if ac else ""
+            info["agent_name"] = an
+            info["agent_content_chars"] = len(ac)
+            info["agent_content_excerpt"] = ac[:200] if ac else ""
+            if resolved_model and resolved_model.startswith("ollama/"):
+                info["_will_call"] = "run_ollama (agent)"
+                info["_ollama_agent_has_content"] = bool(ac)
+            else:
+                info["_will_call"] = "run_agent (opencode CLI)"
+
+    return jsonify(info)
 
 
 @app.route("/api/skills")

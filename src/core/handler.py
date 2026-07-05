@@ -8,6 +8,7 @@ from src.core.command_parser import parse_command, CommandType, AGENT_ALIASES
 from src.core.response_formatter import format_response
 from src.core.session_manager import SessionManager
 from src.core.message_logger import MessageMiddleware, log_requirement
+from src.core.content_loader import get_skill_content, get_agent_content
 
 session_manager = SessionManager()
 
@@ -58,11 +59,23 @@ def _handle_message(phone: str, text: str, model_override: Optional[str] = None)
         _m = _re.match(r'^(\S+?):\s*agent:\s*(\S+?):\s*(.*)', cleaned_text, _re.DOTALL)
         if _m:
             _skill_name, _agent_alias, _task = _m.groups()
-            return execute_agent(f"{_agent_alias}: [{_skill_name}] {_task}", model)
+            _skill_content = get_skill_content(_skill_name)
+            if _skill_content:
+                _context = f"[Skill: {_skill_name}]\n{_skill_content[:3000]}\n\nTask: {_task}"
+            else:
+                _context = _task
+            return execute_agent(f"{_agent_alias}: {_context}", model)
         # skill: name: task — use skill name in prompt
         _m = _re.match(r'^(\S+?):\s*(.*)', cleaned_text, _re.DOTALL)
         if _m:
-            return run_opencode(f"[skill: {_m.group(1)}] {_m.group(2)}", model=model)
+            _skill_name = _m.group(1)
+            _task = _m.group(2)
+            _skill_content = get_skill_content(_skill_name)
+            if _skill_content:
+                _prompt = f"[Skill: {_skill_name}]\n{_skill_content[:4000]}\n\nTask: {_task}"
+            else:
+                _prompt = _task
+            return run_opencode(_prompt, model=model)
 
     result = run_opencode(cleaned_text, model=model)
     formatted = format_response(result, full=phone == "web-ui")
@@ -143,7 +156,15 @@ def execute_agent(command: str, model: str) -> str:
         return f"Agent '{agent_name}' selected. Send your task after the agent name.\nExample: agent: {agent_name}: build a todo app"
 
     if model and model.startswith("ollama/"):
-        prompt = f"You are acting as the agent '{agent_name}'. {task}"
+        agent_content = get_agent_content(agent_name)
+        if agent_content:
+            prompt = (
+                f"You are acting as the agent '{agent_name}' with the following personality and instructions:\n\n"
+                f"{agent_content[:4000]}\n\n"
+                f"User task: {task}"
+            )
+        else:
+            prompt = f"You are acting as the agent '{agent_name}'. {task}"
         result = run_ollama(prompt, model)
     else:
         result = run_agent(agent_name, task)
