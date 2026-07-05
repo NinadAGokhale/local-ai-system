@@ -83,14 +83,14 @@
 
         .model-bar {
             display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 10px 12px;
+            flex-direction: column;
+            gap: 3px;
+            padding: 8px 12px;
             border-bottom: 1px solid var(--border);
             transition: border-color 0.25s;
         }
         .model-bar select {
-            flex: 1;
+            width: 100%;
             background: var(--surface-2);
             border: 1px solid var(--border);
             border-radius: 8px;
@@ -102,6 +102,13 @@
             transition: background 0.25s, border-color 0.25s;
         }
         .model-bar select:focus { border-color: var(--orange); }
+        .model-legend {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-align: center;
+            letter-spacing: 0.3px;
+            user-select: none;
+        }
 
         .conv-header {
             display: flex;
@@ -586,6 +593,9 @@
         </div>
         <div class="model-bar">
             <select id="model-select"></select>
+            <div class="model-legend" id="model-legend">
+                ⚡=fast · 🌐=balanced · 🧠=thinking · 📝=coding
+            </div>
         </div>
         <div class="conv-header">
             <label>Conversations</label>
@@ -1296,7 +1306,7 @@
                 const select = document.getElementById('model-select');
                 let html = '';
                 html += providerOptgroup('└ Ollama (local)',
-                    data.ollama_models.map(m => ({id:`ollama/${m}`, name:m, emoji:null, desc:null})),
+                    data.ollama_models || [],
                     data.ollama_up);
                 html += providerOptgroup('└ MLX (Apple Silicon)',
                     data.mlx_models || [],

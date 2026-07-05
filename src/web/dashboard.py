@@ -323,10 +323,18 @@ def api_models():
             ["ollama", "list"],
             capture_output=True, text=True, timeout=10
         )
+        from src.core.mlx_wrapper import get_model_meta
         for line in result.stdout.strip().split("\n")[1:]:
             parts = line.split()
             if parts:
-                ollama_models.append(parts[0])
+                name = parts[0]
+                meta = get_model_meta(f"ollama/{name}")
+                ollama_models.append({
+                    "id": f"ollama/{name}",
+                    "name": meta["label"],
+                    "emoji": meta["emoji"],
+                    "desc": meta["desc"],
+                })
         ollama_up = True
     except Exception:
         ollama_up = False

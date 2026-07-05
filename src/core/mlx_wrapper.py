@@ -72,99 +72,32 @@ def parse_mlx_model_id(model_id: str) -> Optional[str]:
     return f"mlx-community/{short}"
 
 
+SPEED_FAST =  "⚡ Fast – 1-4 sec reply. Best for simple chat, greetings, quick answers."
+SPEED_MED =   "🌐 General – 3-10 sec reply. Good all-rounder for everyday questions."
+SPEED_SLOW =  "🧠 Thinking – 10-30 sec reply. Best for complex reasoning, math, analysis. Give it time to think."
+SPEED_CODE =  "📝 Coding – 5-15 sec reply. Best for writing, explaining, or fixing code."
+
 MODEL_META: dict[str, dict] = {
     # --- Ollama models ---
-    "qwen3.5:latest": {
-        "emoji": "🧠",
-        "label": "Qwen 3.5",
-        "desc": "Best all-round — chat, analysis, reasoning",
-    },
-    "qwen3.5:9b": {
-        "emoji": "🧠",
-        "label": "Qwen 3.5 9B",
-        "desc": "Large reasoning model for complex analysis",
-    },
-    "qwen3.5:4b": {
-        "emoji": "⚡",
-        "label": "Qwen 3.5 4B",
-        "desc": "Fast lightweight — best for quick responses",
-    },
-    "qwen3.5:4b-chat": {
-        "emoji": "⚡",
-        "label": "Qwen 3.5 4B Chat",
-        "desc": "Fast chat-optimized model",
-    },
-    "qwen2.5-coder:7b": {
-        "emoji": "📝",
-        "label": "Qwen Coder 7B",
-        "desc": "Best for code generation and programming",
-    },
-    "llama3.1:8b": {
-        "emoji": "🌐",
-        "label": "Llama 3.1 8B",
-        "desc": "Strong general-purpose by Meta",
-    },
-    "llama3.2:3b": {
-        "emoji": "⚡",
-        "label": "Llama 3.2 3B",
-        "desc": "Ultra-fast for simple tasks",
-    },
-    "mistral:7b": {
-        "emoji": "🌐",
-        "label": "Mistral 7B",
-        "desc": "Efficient general-purpose model",
-    },
-    "phi4-mini:3.8b": {
-        "emoji": "⚡",
-        "label": "Phi-4 Mini 3.8B",
-        "desc": "Microsoft's compact efficient model",
-    },
-    "deepseek-r1:8b": {
-        "emoji": "🧠",
-        "label": "DeepSeek R1 8B",
-        "desc": "Reasoning-focused for complex problems",
-    },
+    "qwen3.5:latest":     {"emoji": "🌐", "label": "Qwen 3.5",        "desc": SPEED_MED + " Handles any question well — chat, research, analysis."},
+    "qwen3.5:9b":         {"emoji": "🧠", "label": "Qwen 3.5 9B",     "desc": SPEED_SLOW + " The smartest option. Use for tough problems."},
+    "qwen3.5:4b":         {"emoji": "⚡", "label": "Qwen 3.5 4B",     "desc": SPEED_FAST + " Quick and simple — good for everyday chat."},
+    "qwen3.5:4b-chat":    {"emoji": "⚡", "label": "Qwen 3.5 4B Chat","desc": SPEED_FAST + " Optimized for casual conversation."},
+    "qwen2.5-coder:7b":   {"emoji": "📝", "label": "Qwen Coder 7B",   "desc": SPEED_CODE + " Built for programming tasks."},
+    "llama3.1:8b":        {"emoji": "🌐", "label": "Llama 3.1 8B",    "desc": SPEED_MED + " Reliable all-rounder by Meta."},
+    "llama3.2:3b":        {"emoji": "⚡", "label": "Llama 3.2 3B",    "desc": SPEED_FAST + " Ultra-light model — almost instant replies."},
+    "mistral:7b":         {"emoji": "🌐", "label": "Mistral 7B",      "desc": SPEED_MED + " Efficient and capable all-purpose model."},
+    "phi4-mini:3.8b":     {"emoji": "⚡", "label": "Phi-4 Mini",      "desc": SPEED_FAST + " Microsoft's compact model — punchy and quick."},
+    "deepseek-r1:8b":     {"emoji": "🧠", "label": "DeepSeek R1 8B",  "desc": SPEED_SLOW + " Shows its reasoning step-by-step. Great for puzzles, logic, analysis."},
     # --- MLX models (short names, after mlx/ prefix) ---
-    "Llama-3.1-8B-Instruct-4bit": {
-        "emoji": "🌐",
-        "label": "Llama 3.1 8B (MLX)",
-        "desc": "4-bit quantized for Apple Silicon",
-    },
-    "Mistral-7B-Instruct-v0.3-4bit": {
-        "emoji": "🌐",
-        "label": "Mistral 7B (MLX)",
-        "desc": "4-bit quantized Mistral",
-    },
-    "DeepSeek-R1-Distill-Qwen-7B-4bit": {
-        "emoji": "🧠",
-        "label": "DeepSeek R1 7B (MLX)",
-        "desc": "Reasoning model for Apple Silicon",
-    },
-    "Phi-4-mini-instruct-4bit": {
-        "emoji": "⚡",
-        "label": "Phi-4 Mini (MLX)",
-        "desc": "Microsoft's compact model for Apple Silicon",
-    },
-    "Llama-3.2-3B-Instruct-4bit": {
-        "emoji": "⚡",
-        "label": "Llama 3.2 3B (MLX)",
-        "desc": "Ultra-fast, efficient on Apple Silicon",
-    },
-    "Qwen3.5-9B-MLX-4bit": {
-        "emoji": "🧠",
-        "label": "Qwen 3.5 9B (MLX)",
-        "desc": "Large reasoning for Apple Silicon",
-    },
-    "Qwen3.5-4B-MLX-4bit": {
-        "emoji": "⚡",
-        "label": "Qwen 3.5 4B (MLX)",
-        "desc": "Fast lightweight for Apple Silicon",
-    },
-    "Qwen2.5-Coder-7B-Instruct-4bit": {
-        "emoji": "📝",
-        "label": "Qwen Coder 7B (MLX)",
-        "desc": "Code generation for Apple Silicon",
-    },
+    "Llama-3.1-8B-Instruct-4bit":   {"emoji": "🌐", "label": "Llama 3.1 8B (MLX)",    "desc": SPEED_MED + " Runs on your Mac — no cloud needed."},
+    "Mistral-7B-Instruct-v0.3-4bit":{"emoji": "🌐", "label": "Mistral 7B (MLX)",      "desc": SPEED_MED + " Local model, good all-round performance."},
+    "DeepSeek-R1-Distill-Qwen-7B-4bit":{"emoji": "🧠", "label": "DeepSeek R1 7B (MLX)","desc": SPEED_SLOW + " Step-by-step reasoning, fully offline."},
+    "Phi-4-mini-instruct-4bit":     {"emoji": "⚡", "label": "Phi-4 Mini (MLX)",       "desc": SPEED_FAST + " Microsoft's compact model on your Mac."},
+    "Llama-3.2-3B-Instruct-4bit":   {"emoji": "⚡", "label": "Llama 3.2 3B (MLX)",    "desc": SPEED_FAST + " Tiny, light, instant replies — fully offline."},
+    "Qwen3.5-9B-MLX-4bit":          {"emoji": "🧠", "label": "Qwen 3.5 9B (MLX)",     "desc": SPEED_SLOW + " Large reasoning model on your Mac."},
+    "Qwen3.5-4B-MLX-4bit":          {"emoji": "⚡", "label": "Qwen 3.5 4B (MLX)",     "desc": SPEED_FAST + " Lightweight chat model on your Mac."},
+    "Qwen2.5-Coder-7B-Instruct-4bit":{"emoji": "📝", "label": "Qwen Coder 7B (MLX)",   "desc": SPEED_CODE + " Code assistant running on your Mac."},
 }
 
 
