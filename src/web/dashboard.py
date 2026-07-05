@@ -12,7 +12,7 @@ from src.core.config import PROJECT_ROOT
 from src.core.message_logger import get_recent_messages, get_recent_requirements, log_requirement
 from src.core.command_parser import parse_command, CommandType, AGENT_ALIASES
 from src.core.session_manager import SessionManager
-from src.core.handler import handle_message
+from src.core.handler import handle_message, set_shared_session_manager
 from src.core.content_loader import get_skill_content, get_agent_content, get_persona_content
 import traceback
 import werkzeug.exceptions
@@ -26,6 +26,7 @@ if os.path.exists(_DOT_ENV):
             os.environ.setdefault(_k.strip(), _v.strip())
 
 session_manager = SessionManager()
+set_shared_session_manager(session_manager)
 
 app = Flask(__name__,
     template_folder=os.path.join(os.path.dirname(__file__), 'templates'),

@@ -7,8 +7,9 @@ import subprocess
 from unittest.mock import patch, MagicMock
 from src.core.handler import (
     _resolve_model, execute_agent, execute_shell, execute_file_op,
-    execute_search, get_status, session_manager
+    execute_search, get_status, get_session_manager
 )
+session_manager = get_session_manager()
 
 
 def test_resolve_model_with_override():

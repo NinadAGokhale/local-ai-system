@@ -10,14 +10,22 @@ from src.core.session_manager import SessionManager
 from src.core.message_logger import MessageMiddleware, log_requirement
 from src.core.content_loader import get_skill_content, get_agent_content, get_persona_content
 
-session_manager = SessionManager()
+_session_manager: Optional[SessionManager] = None
+
+def get_session_manager() -> SessionManager:
+    global _session_manager
+    if _session_manager is None:
+        _session_manager = SessionManager()
+    return _session_manager
+
+def set_shared_session_manager(sm: SessionManager):
+    global _session_manager
+    _session_manager = sm
 
 
 def _build_prompt(agent_name: str, agent_content: str, skill_names: list[str], task: str,
                   persona_name: str = "", persona_content: str = "") -> str:
     parts = []
-    if persona_name and persona_content:
-        parts.append(f"[Persona: {persona_name}]\nYou ARE {persona_name}. {persona_content[:2000]}")
     if agent_name and agent_content:
         agent_body = agent_content[:2500]
         parts.append(f"[Agent: {agent_name}]\n{agent_body}")
@@ -32,20 +40,25 @@ def _build_prompt(agent_name: str, agent_content: str, skill_names: list[str], t
             parts.append("[Active Skills]\n" + "\n\n".join(skill_blocks))
 
     parts.append(f"[User Request]\n{task}")
+
+    if persona_name and persona_content:
+        heading = persona_name.replace("-", " ").title()
+        parts.append(f"[Persona: {heading}]\nYou MUST answer as {heading}. {persona_content[:2000]}\n\nIMPORTANT: You are {heading}. Answer the user's request above as this character. Do NOT break character. Do NOT describe yourself in third person. BE the character.")
+
     return "\n\n".join(parts)
 
 
 def _resolve_model(phone: str, text: str, model_override: Optional[str] = None) -> tuple[str, str]:
     """Resolve the model and cleaned text, considering session state."""
-    session = session_manager.get_or_create(phone)
+    session = get_session_manager().get_or_create(phone)
     cmd_type, cleaned_text, model = parse_command(text)
 
     if model_override is not None:
         model = model_override
-        session_manager.set_model(phone, model)
+        get_session_manager().set_model(phone, model)
         session.current_model = model
     elif model is not None:
-        session_manager.set_model(phone, model)
+        get_session_manager().set_model(phone, model)
         session.current_model = model
     else:
         model = session.current_model
@@ -55,7 +68,7 @@ def _resolve_model(phone: str, text: str, model_override: Optional[str] = None) 
 
 def _handle_message(phone: str, text: str, model_override: Optional[str] = None) -> str:
     """Process an incoming WhatsApp message (internal, no logging)."""
-    session = session_manager.get_or_create(phone)
+    session = get_session_manager().get_or_create(phone)
     session.last_command = text
 
     # Merge session skills with inline skills
@@ -135,7 +148,7 @@ def get_status() -> str:
         f"OS: {uname.system} {uname.release}\n"
         f"Node: {uname.node}\n"
         f"Uptime: {uptime}\n"
-        f"Sessions: {len(session_manager.sessions)}"
+        f"Sessions: {len(get_session_manager().sessions)}"
     )
 
 

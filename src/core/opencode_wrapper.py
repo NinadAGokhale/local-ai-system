@@ -30,26 +30,45 @@ def _strip_prefix(model: str) -> str:
 
 
 def run_ollama(command: str, model: str = DEFAULT_MODEL) -> str:
-    """Call Ollama directly with a no-tools system prompt. Returns text."""
+    """Call Ollama using chat API with proper system+user message separation."""
     if not model:
         model = DEFAULT_MODEL
     raw_model = _strip_prefix(model)
+
+    # Extract persona section from command and use as system prompt
+    import re as _re
+    pm = _re.search(r'\[Persona: (.*?)\](.*?)(?=\[Agent:|\[Active Skills:|\[User Request\]|$)', command, _re.DOTALL)
+    if pm:
+        persona_name = pm.group(1).strip()
+        persona_text = pm.group(2).strip()
+        system = f"You are {persona_name}. {persona_text}"
+    else:
+        system = "You are a helpful assistant. Respond concisely."
+
+    # Clean up user message
+    user_msg = command
+    for tag in ("[Persona:", "[Agent:", "[Active Skills]", "[User Request]"):
+        user_msg = user_msg.replace(tag, "").strip()
+    user_msg = _re.sub(r'\n{3,}', '\n\n', user_msg).strip()
+
     payload = json.dumps({
         "model": raw_model,
-        "prompt": f"{NO_TOOLS_PROMPT}\n\nUser: {command}\n\nAssistant:",
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_msg},
+        ],
         "stream": False,
-        "system": NO_TOOLS_PROMPT,
     }).encode()
 
     try:
         req = urllib.request.Request(
-            f"{OLLAMA_HOST}/api/generate",
+            f"{OLLAMA_HOST}/api/chat",
             data=payload,
             headers={"Content-Type": "application/json"},
         )
         resp = urllib.request.urlopen(req, timeout=TIMEOUT)
         data = json.loads(resp.read().decode())
-        return data.get("response", "").strip()
+        return data.get("message", {}).get("content", "").strip()
     except urllib.error.HTTPError as e:
         body = e.read().decode()
         return f"Error: Ollama returned {e.code} — {body[:200]}"
