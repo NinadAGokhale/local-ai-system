@@ -1,5 +1,6 @@
 import json
 import os
+import threading
 import time
 import uuid
 from typing import Optional
@@ -62,6 +63,7 @@ class Session:
 class SessionManager:
     def __init__(self):
         self.sessions: dict[str, Session] = {}
+        self._lock = threading.Lock()
         self._load()
 
     def get_or_create(self, phone: str) -> Session:
@@ -155,16 +157,21 @@ class SessionManager:
         return list(self.get_or_create(phone).current_skills)
 
     def _load(self):
-        if os.path.exists(SESSION_FILE):
-            try:
-                with open(SESSION_FILE) as f:
-                    data = json.load(f)
-                    for phone, sdata in data.items():
-                        self.sessions[phone] = Session.from_dict(sdata)
-            except (json.JSONDecodeError, IOError):
-                pass
+        with self._lock:
+            if os.path.exists(SESSION_FILE):
+                try:
+                    with open(SESSION_FILE) as f:
+                        data = json.load(f)
+                        for phone, sdata in data.items():
+                            self.sessions[phone] = Session.from_dict(sdata)
+                except (json.JSONDecodeError, IOError):
+                    pass
 
     def _save(self):
-        data = {p: s.to_dict() for p, s in self.sessions.items()}
-        with open(SESSION_FILE, 'w') as f:
-            json.dump(data, f, indent=2)
+        with self._lock:
+            data = {p: s.to_dict() for p, s in self.sessions.items()}
+            # Atomic write: write to temp then rename
+            tmp = SESSION_FILE + ".tmp"
+            with open(tmp, 'w') as f:
+                json.dump(data, f, indent=2)
+            os.replace(tmp, SESSION_FILE)

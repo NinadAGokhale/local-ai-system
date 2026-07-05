@@ -67,19 +67,18 @@ def _handle_message(phone: str, text: str, model_override: Optional[str] = None)
     cmd_type, cleaned_text, model = _resolve_model(phone, text, model_override)
 
     if cmd_type == CommandType.STATUS:
-        return get_status()
+        result = get_status()
+    elif cmd_type == CommandType.SHELL:
+        result = execute_shell(cleaned_text)
+    elif cmd_type == CommandType.FILE:
+        result = execute_file_op(cleaned_text)
+    elif cmd_type == CommandType.SEARCH:
+        result = execute_search(cleaned_text)
 
-    if cmd_type == CommandType.SHELL:
-        return execute_shell(cleaned_text)
-
-    if cmd_type == CommandType.FILE:
-        return execute_file_op(cleaned_text)
-
-    if cmd_type == CommandType.SEARCH:
-        return execute_search(cleaned_text)
+    result = None
 
     if cmd_type == CommandType.AGENT:
-        return execute_agent(cleaned_text, model, extra_skills=session_skills)
+        result = execute_agent(cleaned_text, model, extra_skills=session_skills)
 
     if cmd_type == CommandType.SKILL:
         import re as _re
@@ -87,30 +86,27 @@ def _handle_message(phone: str, text: str, model_override: Optional[str] = None)
         _m = _re.match(r'^(\S+?):\s*agent:\s*(\S+?):\s*(.*)', cleaned_text, _re.DOTALL)
         if _m:
             _skill_name, _agent_alias, _task = _m.groups()
-            # Merge inline skill + session skills
             all_skills = list(session_skills)
             if _skill_name not in all_skills:
                 all_skills.append(_skill_name)
-            return execute_agent(f"{_agent_alias}: {_task}", model, extra_skills=all_skills)
-        # skill: name: task — use skill as context for plain opencode call
-        _m = _re.match(r'^(\S+?):\s*(.*)', cleaned_text, _re.DOTALL)
-        if _m:
-            _skill_name = _m.group(1)
-            _task = _m.group(2)
-            all_skills = list(session_skills)
-            if _skill_name not in all_skills:
-                all_skills.append(_skill_name)
-            # If no session agent, just run opencode with skills as context
-            if session.current_agent:
-                return execute_agent(f"{session.current_agent}: {_task}", model, extra_skills=all_skills)
-            agent_content = get_skill_content(_skill_name)
-            if agent_content:
-                _prompt = _build_prompt("", "", all_skills, _task)
-            else:
-                _prompt = _task
-            return run_opencode(_prompt, model=model)
+            result = execute_agent(f"{_agent_alias}: {_task}", model, extra_skills=all_skills)
+        else:
+            # skill: name: task — use skill as context for plain opencode call
+            _m = _re.match(r'^(\S+?):\s*(.*)', cleaned_text, _re.DOTALL)
+            if _m:
+                _skill_name = _m.group(1)
+                _task = _m.group(2)
+                all_skills = list(session_skills)
+                if _skill_name not in all_skills:
+                    all_skills.append(_skill_name)
+                if session.current_agent:
+                    result = execute_agent(f"{session.current_agent}: {_task}", model, extra_skills=all_skills)
+                else:
+                    _prompt = _build_prompt("", "", all_skills, _task) if get_skill_content(_skill_name) else _task
+                    result = run_opencode(_prompt, model=model)
 
-    result = run_opencode(cleaned_text, model=model)
+    if result is None:
+        result = run_opencode(cleaned_text, model=model)
     formatted = format_response(result, full=phone == "web-ui")
 
     return formatted
@@ -205,7 +201,7 @@ def execute_agent(command: str, model: str, extra_skills: Optional[list[str]] = 
         if _is_agent_fallback_needed(result):
             result = run_opencode_cli(context, model)
 
-    return format_response(result)
+    return result
 
 
 def _is_agent_fallback_needed(result: str) -> bool:

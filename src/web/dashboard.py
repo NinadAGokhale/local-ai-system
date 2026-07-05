@@ -14,6 +14,7 @@ from src.core.command_parser import parse_command, CommandType, AGENT_ALIASES
 from src.core.session_manager import SessionManager
 from src.core.handler import handle_message
 from src.core.content_loader import get_skill_content, get_agent_content
+import traceback
 
 _DOT_ENV = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(_DOT_ENV):
@@ -28,6 +29,15 @@ session_manager = SessionManager()
 app = Flask(__name__,
     template_folder=os.path.join(os.path.dirname(__file__), 'templates'),
     static_folder=os.path.join(os.path.dirname(__file__), 'static'))
+
+
+@app.errorhandler(Exception)
+def _handle_exception(e):
+    """Catch-all: return JSON instead of HTML for API errors."""
+    if request.path.startswith("/api/"):
+        tb = traceback.format_exc()
+        return jsonify({"error": str(e), "traceback": tb}), 500
+    raise e
 _SECRET_KEY_FILE = os.path.join(os.path.dirname(__file__), '.secret_key')
 if os.path.exists(_SECRET_KEY_FILE):
     app.secret_key = open(_SECRET_KEY_FILE).read().strip()
