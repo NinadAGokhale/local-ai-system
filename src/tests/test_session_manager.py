@@ -58,12 +58,12 @@ def test_session_context_files():
 def test_session_agent_and_skill():
     s = Session("+1")
     assert s.current_agent is None
-    assert s.current_skill is None
+    assert s.current_skills == []
     s.current_agent = "cto"
-    s.current_skill = "content-production"
+    s.current_skills = ["content-production"]
     d = s.to_dict()
     assert d["current_agent"] == "cto"
-    assert d["current_skill"] == "content-production"
+    assert d["current_skills"] == ["content-production"]
 
 
 def test_session_manager_get_or_create():
@@ -79,10 +79,14 @@ def test_session_manager_set_agent():
     assert sm.get_current_agent("+111") == "founder"
 
 
-def test_session_manager_set_skill():
+def test_session_manager_toggle_skill():
     sm = SessionManager()
-    sm.set_skill("+111", "ad-creative")
-    assert sm.get_current_skill("+111") == "ad-creative"
+    # Toggle on
+    sm.toggle_skill("+111", "ad-creative")
+    assert "ad-creative" in sm.get_current_skills("+111")
+    # Toggle off
+    sm.toggle_skill("+111", "ad-creative")
+    assert "ad-creative" not in sm.get_current_skills("+111")
 
 
 def test_session_manager_clear_agent():
@@ -92,11 +96,12 @@ def test_session_manager_clear_agent():
     assert sm.get_current_agent("+111") is None
 
 
-def test_session_manager_clear_skill():
+def test_session_manager_clear_skills():
     sm = SessionManager()
-    sm.set_skill("+111", "seo-audit")
-    sm.set_skill("+111", None)
-    assert sm.get_current_skill("+111") is None
+    sm.toggle_skill("+111", "seo-audit")
+    sm.toggle_skill("+111", "aeo")
+    sm.clear_skills("+111")
+    assert sm.get_current_skills("+111") == []
 
 
 def test_session_manager_set_model():

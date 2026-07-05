@@ -109,11 +109,16 @@ def test_api_set_agent():
 
 def test_api_set_skill():
     client = dashboard.app.test_client()
+    # Toggle on
     resp = client.post("/api/skill", json={"skill": "content-production"})
     assert resp.status_code == 200
     data = json.loads(resp.data)
     assert data["ok"] is True
-    assert data["current_skill"] == "content-production"
+    assert "content-production" in data["current_skills"]
+    # Toggle off
+    resp = client.post("/api/skill", json={"skill": "content-production"})
+    data = json.loads(resp.data)
+    assert "content-production" not in data["current_skills"]
 
 
 def test_api_clear_agent():
@@ -126,10 +131,13 @@ def test_api_clear_agent():
 
 def test_api_clear_skill():
     client = dashboard.app.test_client()
+    # Toggle one on first
+    client.post("/api/skill", json={"skill": "content-production"})
+    # Clear all
     resp = client.post("/api/skill", json={"skill": None})
     assert resp.status_code == 200
     data = json.loads(resp.data)
-    assert data["current_skill"] is None
+    assert data["current_skills"] == []
 
 
 def test_api_models_has_keys():
