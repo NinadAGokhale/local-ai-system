@@ -98,19 +98,23 @@ class SessionManager:
         return convs
 
     def switch_conversation(self, phone: str, conv_id: str) -> list[dict]:
+        """Switch to a saved conversation. Saves current history as a snapshot first,
+        then loads the target conversation. Both remain in the sidebar."""
         session = self.get_or_create(phone)
         if conv_id == "__current__":
             return list(session.history)
+        # Save current history as a snapshot before switching
+        if session.history:
+            session.conversations.append({
+                "id": str(uuid.uuid4())[:8],
+                "title": session.get_title(),
+                "history": list(session.history),
+            })
+            session.history = []
+        # Load the target conversation
         for c in session.conversations:
             if c["id"] == conv_id:
-                if session.history:
-                    session.conversations.append({
-                        "id": str(uuid.uuid4())[:8],
-                        "title": session.get_title(),
-                        "history": list(session.history),
-                    })
                 session.history = list(c["history"])
-                session.conversations = [x for x in session.conversations if x["id"] != conv_id]
                 self._save()
                 return list(session.history)
         return list(session.history)

@@ -213,7 +213,7 @@ def api_switch_conversation():
     return jsonify({
         "history": history,
         "current_agent": s.current_agent,
-        "current_skill": s.current_skill,
+        "current_skills": s.current_skills,
     })
 
 
