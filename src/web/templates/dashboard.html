@@ -454,6 +454,8 @@
             transition: background 0.1s;
         }
         .ac-item:hover { background: var(--surface-2); color: var(--text); }
+        .ac-item.active-item,
+        .ac-item.hover-item { background: var(--surface-2); }
         .ac-item .ac-prefix {
             font-size: 11px;
             font-weight: 600;
@@ -527,7 +529,7 @@
         </div>
         <div class="conv-list" id="conv-list"></div>
         <div class="sidebar-footer">
-            <span class="user-badge">user</span>
+            <span class="user-badge">{{ username }}</span>
             <a href="/logout" class="logout-link">Logout</a>
         </div>
     </div>
@@ -926,7 +928,7 @@
             const filtered = acFilter ? items.filter(x => x.name.toLowerCase().includes(acFilter)) : items;
             if (acIndex >= filtered.length) acIndex = filtered.length - 1;
             list.innerHTML = filtered.slice(0, 100).map((item, i) => `
-                <div class="ac-item${i === acIndex ? ' active-item' : ''}" data-name="${escHtml(item.name)}" onmouseover="acIndex=${i};renderACList()">
+                <div class="ac-item${i === acIndex ? ' active-item' : ''}" data-name="${item.name.replace(/"/g, '&quot;')}" onclick="selectAC(this.dataset.name)">
                     <span class="ac-prefix">${acMode === 'agent' ? '@' : '$'}</span>
                     <span>${escHtml(item.name)}</span>
                     <span class="ac-desc">${escHtml(item.description || '')}</span>

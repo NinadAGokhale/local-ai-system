@@ -233,8 +233,10 @@ def api_chat():
 
     s = session_manager.get_or_create(phone)
 
-    # Apply active mode prefix — skill takes priority when both active
-    if s.current_skill:
+    # Apply active mode prefix — support both simultaneously
+    if s.current_skill and s.current_agent:
+        message = f"skill: {s.current_skill}: agent: {s.current_agent}: {message}"
+    elif s.current_skill:
         message = f"skill: {s.current_skill}: {message}"
     elif s.current_agent:
         message = f"agent: {s.current_agent}: {message}"

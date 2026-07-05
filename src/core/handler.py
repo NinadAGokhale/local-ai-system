@@ -52,6 +52,18 @@ def _handle_message(phone: str, text: str, model_override: Optional[str] = None)
     if cmd_type == CommandType.AGENT:
         return execute_agent(cleaned_text, model)
 
+    if cmd_type == CommandType.SKILL:
+        import re as _re
+        # skill: name: agent: subname: task — use agent with skill context
+        _m = _re.match(r'^(\S+?):\s*agent:\s*(\S+?):\s*(.*)', cleaned_text, _re.DOTALL)
+        if _m:
+            _skill_name, _agent_alias, _task = _m.groups()
+            return execute_agent(f"{_agent_alias}: [{_skill_name}] {_task}", model)
+        # skill: name: task — use skill name in prompt
+        _m = _re.match(r'^(\S+?):\s*(.*)', cleaned_text, _re.DOTALL)
+        if _m:
+            return run_opencode(f"[skill: {_m.group(1)}] {_m.group(2)}", model=model)
+
     result = run_opencode(cleaned_text, model=model)
     formatted = format_response(result, full=phone == "web-ui")
 
