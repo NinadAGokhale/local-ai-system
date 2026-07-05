@@ -3,7 +3,7 @@
 import sys
 sys.path.insert(0, '.')
 
-from response_formatter import format_response, format_code_blocks, strip_ansi
+from src.core.response_formatter import format_response, format_code_blocks, strip_ansi
 
 
 def test_empty_response():
@@ -69,3 +69,10 @@ def test_mixed_content():
     result = format_response("Hello\n```\ncode block\n```\nEnd")
     assert "Hello" in result
     assert "code block" in result
+
+
+def test_full_mode_returns_all():
+    text = "A" * 5000
+    result = format_response(text, full=True)
+    assert result == text
+    assert "truncated" not in result

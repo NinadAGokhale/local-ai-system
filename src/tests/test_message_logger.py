@@ -6,8 +6,7 @@ import tempfile
 import json
 sys.path.insert(0, '.')
 
-# Patch LOG_DIR before importing message_logger
-import message_logger as ml
+import src.core.message_logger as ml
 
 
 def test_log_message_creates_file():
@@ -97,3 +96,11 @@ def test_multiple_logs_order():
         assert len(msgs) == 2
         assert msgs[0]["raw_message"] == "third"
         assert msgs[1]["raw_message"] == "second"
+
+
+def test_get_recent_requirements_empty():
+    with tempfile.TemporaryDirectory() as tmp:
+        ml.LOG_DIR = tmp
+        ml.REQUIREMENTS_LOG = os.path.join(tmp, "requirements.jsonl")
+        reqs = ml.get_recent_requirements()
+        assert reqs == []

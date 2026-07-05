@@ -3,7 +3,7 @@
 import sys
 sys.path.insert(0, '.')
 
-from command_parser import parse_command, CommandType
+from src.core.command_parser import parse_command, CommandType, get_model_for_type, AGENT_ALIASES, MODEL_MAP, PREFIX_PATTERNS
 
 
 def test_parse_code_command():
@@ -88,3 +88,46 @@ def test_parse_implement_synonym():
 def test_parse_create_synonym():
     cmd_type, text, model = parse_command("create a new project structure")
     assert cmd_type == CommandType.CODE
+
+
+def test_parse_agent_command():
+    cmd_type, text, model = parse_command("agent: cto: build a roadmap")
+    assert cmd_type == CommandType.AGENT
+    assert model is None
+
+
+def test_parse_skill_command():
+    cmd_type, text, model = parse_command("skill: content-production: write a post")
+    assert cmd_type == CommandType.SKILL
+    assert model is None
+
+
+def test_parse_skill_without_colon():
+    cmd_type, text, model = parse_command("skill content-production write a post")
+    assert cmd_type == CommandType.SKILL
+
+
+def test_parse_skill_prefix_in_patterns():
+    assert CommandType.SKILL in PREFIX_PATTERNS
+
+
+def test_parse_skill_in_model_map():
+    assert CommandType.SKILL in MODEL_MAP
+    assert MODEL_MAP[CommandType.SKILL] is None
+
+
+def test_agent_aliases_include_shorts():
+    assert "cto" in AGENT_ALIASES
+    assert AGENT_ALIASES["cto"] == "startup-cto"
+    assert "backend" in AGENT_ALIASES
+    assert AGENT_ALIASES["backend"] == "cs-backend-engineer"
+
+
+def test_get_model_for_type():
+    assert get_model_for_type(CommandType.CODE) == "ollama/qwen2.5-coder:7b"
+    assert get_model_for_type(CommandType.UNKNOWN) is None
+
+
+def test_get_model_for_type_none():
+    assert get_model_for_type(CommandType.STATUS) is None
+    assert get_model_for_type(CommandType.SHELL) is None
