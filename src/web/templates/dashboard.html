@@ -525,12 +525,11 @@
             {% endif %}
         </div>
 
-        <!-- @ / $ dropdown -->
-        <div class="autocomplete-dropdown" id="ac-dropdown">
-            <div id="ac-list"></div>
-        </div>
-
         <div class="input-area">
+            <!-- @ / $ dropdown (must be inside input-area for position: absolute to work) -->
+            <div class="autocomplete-dropdown" id="ac-dropdown">
+                <div id="ac-list"></div>
+            </div>
             <div class="input-row">
                 <textarea id="chat-input" rows="1" placeholder="Type @ for agents, $ for skills, or send a message..." onkeydown="onInputKey(event)"></textarea>
                 <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
