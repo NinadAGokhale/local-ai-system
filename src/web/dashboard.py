@@ -62,7 +62,7 @@ def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not session.get("logged_in"):
-            return redirect(url_for("login"))
+            return redirect(url_for("request_access"))
         return f(*args, **kwargs)
     return decorated
 
@@ -71,10 +71,54 @@ def _web_phone():
     return session.get("username", "web-ui")
 
 
+ADMIN_EMAIL = os.environ.get("SARATTHYA_ADMIN_EMAIL", "ninad@localhost")
+REQUESTS_FILE = Path(PROJECT_ROOT) / "logs" / "access_requests.jsonl"
+
+
+@app.route("/request", methods=["GET", "POST"])
+def request_access():
+    error = None
+    ok = False
+    if request.method == "POST":
+        try:
+            data = request.get_json(silent=True) or {}
+        except Exception:
+            data = {}
+        data = data or request.form
+        name = data.get("name", "").strip()
+        email = data.get("email", "").strip()
+        reason = data.get("reason", "").strip()
+        if not name or not email:
+            error = "Name and email are required."
+        else:
+            entry = {"name": name, "email": email, "reason": reason, "ts": __import__("time").time()}
+            try:
+                REQUESTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+                with open(REQUESTS_FILE, "a") as f:
+                    f.write(json.dumps(entry) + "\n")
+                # Try sending email notification to admin
+                try:
+                    subprocess.run(
+                        ["mail", "-s", f"Saratthya Access Request: {name}", ADMIN_EMAIL],
+                        input=f"Name: {name}\nEmail: {email}\nReason: {reason or 'N/A'}".encode(),
+                        timeout=10,
+                    )
+                except Exception:
+                    pass
+            except Exception as e:
+                error = f"Failed to save request: {e}"
+            ok = True
+    return render_template("request.html", error=error, ok=ok)
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        data = request.get_json() or request.form
+        try:
+            data = request.get_json(silent=True) or {}
+        except Exception:
+            data = {}
+        data = data or request.form
         username = data.get("username", "").strip().lower()
         password = data.get("password", "")
         expected = USERS.get(username)
@@ -131,7 +175,7 @@ def api_requirements():
 
 @app.route("/api/requirements", methods=["POST"])
 def api_create_requirement():
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data or "text" not in data:
         return jsonify({"error": "Missing 'text' field"}), 400
 
@@ -208,7 +252,7 @@ def api_conversations():
 
 @app.route("/api/conversations", methods=["POST"])
 def api_switch_conversation():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     phone = data.get("phone") or _web_phone()
     conv_id = data.get("conv_id")
     if not conv_id:
@@ -224,7 +268,7 @@ def api_switch_conversation():
 
 @app.route("/api/conversations/pin", methods=["POST"])
 def api_toggle_pin():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     phone = data.get("phone") or _web_phone()
     conv_id = data.get("conv_id")
     if not conv_id:
@@ -235,7 +279,7 @@ def api_toggle_pin():
 
 @app.route("/api/conversations/rename", methods=["POST"])
 def api_rename_conversation():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     phone = data.get("phone") or _web_phone()
     conv_id = data.get("conv_id")
     title = data.get("title", "")
@@ -247,7 +291,7 @@ def api_rename_conversation():
 
 @app.route("/api/chat/new", methods=["POST"])
 def api_chat_new():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     phone = data.get("phone") or _web_phone()
     session_manager.new_conversation(phone)
     return jsonify({"status": "ok"})
@@ -256,7 +300,7 @@ def api_chat_new():
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
     import time
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data or "message" not in data:
         return jsonify({"error": "Missing 'message' field"}), 400
 
@@ -313,7 +357,7 @@ def api_chat_download():
 
 @app.route("/api/agent", methods=["POST"])
 def api_set_agent():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     phone = data.get("phone") or _web_phone()
     agent = data.get("agent") or None
     session_manager.set_agent(phone, agent)
@@ -323,7 +367,7 @@ def api_set_agent():
 @app.route("/api/skill", methods=["POST"])
 def api_set_skill():
     """Toggle a skill on/off. POST with skill='name' adds it; without removes all."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     phone = data.get("phone") or _web_phone()
     skill = data.get("skill")
     if skill:
@@ -451,7 +495,7 @@ def api_debug_resolve():
     """Debug endpoint that shows how a message will be processed without executing.
     Returns the resolved command type, model, extracted skill/agent names, content sizes, etc.
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     message = data.get("message", "")
     phone = data.get("phone") or _web_phone()
     model_override = data.get("model")
