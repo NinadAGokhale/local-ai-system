@@ -1124,18 +1124,18 @@
                 const ep = document.getElementById('empty-personas');
                 if (ep && allPersonas.length) {
                     ep.innerHTML = allPersonas.map(p =>
-                        \`<div class="empty-persona-card" onclick="setPersona('\${escHtml(p.name)}'); sendExample('hi')">
-                            <span class="epc-name">\${escHtml(p.name.replace(/-/g, ' ').replace(/\\b\\w/g, c => c.toUpperCase()))}</span>
-                        </div>\`
+                        `<div class="empty-persona-card" onclick="setPersona('${escHtml(p.name)}'); sendExample('hi')">
+                            <span class="epc-name">${escHtml(p.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}</span>
+                        </div>`
                     ).join('');
                 } else if (ep) {
                     // Fetch personas if not loaded yet
                     fetch('/api/personas').then(r => r.json()).then(d => {
                         allPersonas = d.personas || [];
                         ep.innerHTML = allPersonas.map(p =>
-                            \`<div class="empty-persona-card" onclick="setPersona('\${escHtml(p.name)}'); sendExample('hi')">
-                                <span class="epc-name">\${escHtml(p.name.replace(/-/g, ' ').replace(/\\b\\w/g, c => c.toUpperCase()))}</span>
-                            </div>\`
+                            `<div class="empty-persona-card" onclick="setPersona('${escHtml(p.name)}'); sendExample('hi')">
+                                <span class="epc-name">${escHtml(p.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}</span>
+                            </div>`
                         ).join('');
                     }).catch(() => {});
                 }
