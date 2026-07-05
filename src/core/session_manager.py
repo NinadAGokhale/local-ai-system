@@ -87,6 +87,7 @@ class SessionManager:
             "id": str(uuid.uuid4())[:8],
             "title": session.get_title(),
             "history": list(session.history),
+            "pinned": False,
         })
 
     def add_to_history(self, phone: str, role: str, content: str, latency_ms: Optional[float] = None):
@@ -121,6 +122,7 @@ class SessionManager:
                 "id": c["id"],
                 "title": c["title"],
                 "active": c["id"] == active_id,
+                "pinned": c.get("pinned", False),
             })
         # Add __current__ if there's active history not yet saved
         if session.history and active_id == "__current__":
@@ -128,6 +130,7 @@ class SessionManager:
                 "id": "__current__",
                 "title": session.get_title(),
                 "active": True,
+                "pinned": False,
             })
         return convs
 
@@ -155,6 +158,25 @@ class SessionManager:
         session.current_conv_id = "__current__"
         self._save()
         return list(session.history)
+
+    def toggle_pin_conversation(self, phone: str, conv_id: str) -> list[dict]:
+        session = self.get_or_create(phone)
+        for c in session.conversations:
+            if c["id"] == conv_id:
+                c["pinned"] = not c.get("pinned", False)
+                break
+        self._save()
+        return self.get_conversations(phone)
+
+    def rename_conversation(self, phone: str, conv_id: str, title: str) -> list[dict]:
+        title = title.strip()[:80] or "Untitled"
+        session = self.get_or_create(phone)
+        for c in session.conversations:
+            if c["id"] == conv_id:
+                c["title"] = title
+                break
+        self._save()
+        return self.get_conversations(phone)
 
     def set_model(self, phone: str, model: str):
         session = self.get_or_create(phone)

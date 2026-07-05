@@ -227,6 +227,29 @@ def api_switch_conversation():
     })
 
 
+@app.route("/api/conversations/pin", methods=["POST"])
+def api_toggle_pin():
+    data = request.get_json() or {}
+    phone = data.get("phone") or _web_phone()
+    conv_id = data.get("conv_id")
+    if not conv_id:
+        return jsonify({"error": "Missing conv_id"}), 400
+    convs = session_manager.toggle_pin_conversation(phone, conv_id)
+    return jsonify(convs)
+
+
+@app.route("/api/conversations/rename", methods=["POST"])
+def api_rename_conversation():
+    data = request.get_json() or {}
+    phone = data.get("phone") or _web_phone()
+    conv_id = data.get("conv_id")
+    title = data.get("title", "")
+    if not conv_id:
+        return jsonify({"error": "Missing conv_id"}), 400
+    convs = session_manager.rename_conversation(phone, conv_id, title)
+    return jsonify(convs)
+
+
 @app.route("/api/chat/new", methods=["POST"])
 def api_chat_new():
     data = request.get_json() or {}

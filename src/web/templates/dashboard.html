@@ -209,6 +209,27 @@
         .conv-item .conv-ts {
             font-size: 10px;
             color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .conv-pin {
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0.4;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: opacity 0.2s;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .conv-pin:hover { opacity: 1; background: var(--surface-2); }
+        .conv-item.pinned .conv-pin { opacity: 0.8; }
+        .conv-title-edit {
+            cursor: pointer;
+        }
+        .conv-title-edit:hover {
+            color: var(--orange);
+            text-decoration: underline;
+            text-decoration-style: dotted;
         }
 
         .sidebar-footer {
@@ -826,14 +847,43 @@
         // ─── Render conversation sidebar ───
         function renderConversations(convs) {
             const list = document.getElementById('conv-list');
-            list.innerHTML = convs.map(c => `
-                <div class="conv-item${c.active ? ' active' : ''}" onclick="switchConv('${c.id}')">
+            // Sort: pinned first, then by order
+            const sorted = [...convs].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+            list.innerHTML = sorted.map(c => `
+                <div class="conv-item${c.active ? ' active' : ''}${c.pinned ? ' pinned' : ''}">
                     <span class="conv-icon">${c.active ? '💬' : '📋'}</span>
-                    <div class="conv-info">
-                        <div class="conv-title">${escHtml(c.title || 'New Chat')}</div>
+                    <div class="conv-info" onclick="switchConv('${c.id}')">
+                        <div class="conv-title conv-title-edit" onclick="event.stopPropagation(); renameConv('${c.id}', '${escHtml(c.title || '').replace(/'/g, "\\'")}')" title="Click to rename">${escHtml(c.title || 'New Chat')}</div>
                     </div>
+                    <span class="conv-pin" onclick="event.stopPropagation(); togglePin('${c.id}')" title="${c.pinned ? 'Unpin' : 'Pin this chat'}">${c.pinned ? '📍' : '📌'}</span>
                 </div>
             `).join('');
+        }
+
+        async function togglePin(convId) {
+            try {
+                const r = await fetch('/api/conversations/pin', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({conv_id: convId}),
+                });
+                const convs = await r.json();
+                renderConversations(convs);
+            } catch(e) {}
+        }
+
+        async function renameConv(convId, currentTitle) {
+            const title = prompt('Rename conversation:', currentTitle || '');
+            if (title === null || title === currentTitle) return;
+            try {
+                const r = await fetch('/api/conversations/rename', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({conv_id: convId, title: title}),
+                });
+                const convs = await r.json();
+                renderConversations(convs);
+            } catch(e) {}
         }
 
         async function loadConversations() {

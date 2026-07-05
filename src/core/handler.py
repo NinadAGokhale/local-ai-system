@@ -3,7 +3,7 @@
 import os
 from typing import Optional
 
-from src.core.opencode_wrapper import run_opencode, run_agent, run_ollama, run_opencode_cli
+from src.core.opencode_wrapper import run_opencode, run_agent, run_ollama, run_opencode_cli, run_mlx
 from src.core.command_parser import parse_command, CommandType, AGENT_ALIASES
 from src.core.response_formatter import format_response
 from src.core.session_manager import SessionManager
@@ -74,8 +74,8 @@ def _handle_message(phone: str, text: str, model_override: Optional[str] = None)
         result = execute_file_op(cleaned_text)
     elif cmd_type == CommandType.SEARCH:
         result = execute_search(cleaned_text)
-
-    result = None
+    else:
+        result = None
 
     if cmd_type == CommandType.AGENT:
         result = execute_agent(cleaned_text, model, extra_skills=session_skills)
@@ -192,12 +192,15 @@ def execute_agent(command: str, model: str, extra_skills: Optional[list[str]] = 
     if model and model.startswith("ollama/"):
         prompt = _build_prompt(agent_name, agent_content, skills_list, task)
         result = run_ollama(prompt, model)
+    elif model and model.startswith("mlx/"):
+        prompt = _build_prompt(agent_name, agent_content, skills_list, task)
+        result = run_mlx(prompt, model)
+    elif model and (model.startswith("opencode-go/") or model.startswith("opencode/")):
+        context = _build_prompt(agent_name, agent_content, skills_list, task)
+        result = run_opencode_cli(context, model)
     else:
-        # Build context that includes agent description + skills
         context = _build_prompt(agent_name, agent_content, skills_list, task)
         result = run_agent(agent_name, context)
-        # If --agent fails (server error), fallback runs --model without agent context
-        # Detect and retry with context injected into the fallback
         if _is_agent_fallback_needed(result):
             result = run_opencode_cli(context, model)
 
