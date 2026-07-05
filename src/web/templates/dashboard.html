@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Saratthya — Agentic Market Analytics &amp; Business Development</title>
     <link rel="icon" href="/static/logo.jpeg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
         :root {
             --orange: #fe6c19;
@@ -20,19 +23,36 @@
             --text-muted: #555555;
             --radius: 10px;
             --sidebar-w: 280px;
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        [data-theme="light"] {
+            --bg: #f5f5f0;
+            --surface: #ffffff;
+            --surface-2: #f0efea;
+            --surface-3: #e6e5df;
+            --border: #d6d5cf;
+            --text: #1a1a1a;
+            --text-dim: #666666;
+            --text-muted: #999999;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text);
             height: 100vh;
             display: flex;
             overflow: hidden;
+            transition: background 0.25s, color 0.25s;
         }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; transition: background 0.25s; }
+        * { scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
 
         /* ─── Sidebar ─── */
         .sidebar {
@@ -42,6 +62,7 @@
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
+            transition: background 0.25s, border-color 0.25s;
         }
         .sidebar-header {
             padding: 16px;
@@ -57,8 +78,8 @@
             overflow: hidden;
         }
         .sidebar-header .logo img { width: 100%; height: 100%; object-fit: cover; }
-        .sidebar-header .brand h1 { font-size: 14px; font-weight: 600; color: var(--orange-light); }
-        .sidebar-header .brand .sub { font-size: 10px; color: var(--text-muted); }
+        .sidebar-header .brand h1 { font-size: 15px; font-weight: 700; color: var(--orange-light); letter-spacing: -0.3px; }
+        .sidebar-header .brand .sub { font-size: 10px; color: var(--text-muted); letter-spacing: 0.2px; }
 
         .model-bar {
             display: flex;
@@ -66,16 +87,19 @@
             gap: 6px;
             padding: 10px 12px;
             border-bottom: 1px solid var(--border);
+            transition: border-color 0.25s;
         }
         .model-bar select {
             flex: 1;
             background: var(--surface-2);
             border: 1px solid var(--border);
-            border-radius: 6px;
+            border-radius: 8px;
             color: var(--text);
-            padding: 6px 8px;
-            font-size: 11px;
+            padding: 7px 10px;
+            font-size: 11.5px;
+            font-family: var(--font);
             outline: none;
+            transition: background 0.25s, border-color 0.25s;
         }
         .model-bar select:focus { border-color: var(--orange); }
 
@@ -113,15 +137,16 @@
         .conv-item {
             display: flex;
             align-items: center;
-            padding: 9px 10px;
+            padding: 10px 12px;
             margin-bottom: 2px;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            gap: 8px;
-            transition: background 0.15s;
+            gap: 10px;
+            transition: background 0.15s, border-color 0.25s;
         }
         .conv-item:hover { background: var(--surface-2); }
-        .conv-item.active { background: var(--surface-2); border-left: 2px solid var(--orange); }
+        .conv-item.active { background: var(--surface-2); border-left: 3px solid var(--orange); }
+        .conv-item .conv-title { letter-spacing: -0.2px; }
         .conv-item .conv-icon {
             font-size: 12px;
             color: var(--text-muted);
@@ -148,6 +173,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            transition: border-color 0.25s;
         }
         .user-badge {
             font-size: 10px;
@@ -181,6 +207,7 @@
             align-items: center;
             justify-content: space-between;
             background: var(--surface);
+            transition: background 0.25s, border-color 0.25s;
         }
         .chat-header .title { font-size: 13px; color: var(--text-dim); }
         .chat-header .actions { display: flex; gap: 6px; align-items: center; }
@@ -192,7 +219,7 @@
             padding: 5px 10px;
             font-size: 11px;
             cursor: pointer;
-            transition: background 0.15s;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
         }
         .chat-header .actions button:hover { background: var(--surface-2); color: var(--text); }
         .chat-header .actions .logout-btn {
@@ -201,6 +228,19 @@
             padding: 5px 8px;
         }
         .chat-header .actions .logout-btn:hover { color: #ef4444; border-color: #ef4444; }
+
+        /* Theme toggle */
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px; height: 30px;
+            padding: 0 !important;
+            border-radius: 50% !important;
+            font-size: 14px !important;
+            line-height: 1;
+        }
+        .theme-toggle:hover { background: var(--surface-2); }
 
         /* Mode indicator */
         .mode-bar {
@@ -211,6 +251,7 @@
             border-bottom: 1px solid var(--border);
             min-height: 32px;
             background: var(--bg);
+            transition: background 0.25s, border-color 0.25s;
         }
         .mode-bar:empty { display: none; }
         .mode-chip {
@@ -221,7 +262,7 @@
             border-radius: 12px;
             font-size: 11px;
             cursor: pointer;
-            transition: background 0.15s;
+            transition: background 0.15s, border-color 0.25s;
         }
         .mode-chip.agent-chip {
             background: rgba(168,85,247,0.2);
@@ -249,18 +290,21 @@
         .msg-group { margin-bottom: 16px; }
         .msg-bubble {
             max-width: 80%;
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-size: 13px;
-            line-height: 1.6;
+            padding: 12px 16px;
+            border-radius: 14px;
+            font-size: 13.5px;
+            line-height: 1.65;
+            letter-spacing: 0.1px;
             white-space: pre-wrap;
             word-wrap: break-word;
+            transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
         }
         .msg-bubble.user {
             background: var(--orange);
             color: #fff;
             margin-left: auto;
             border-bottom-right-radius: 4px;
+            box-shadow: var(--shadow-sm);
         }
         .msg-bubble.bot {
             background: var(--surface-2);
@@ -268,6 +312,7 @@
             margin-right: auto;
             border-bottom-left-radius: 4px;
             color: var(--text);
+            box-shadow: var(--shadow-sm);
         }
         .msg-bubble.bot.error { border-color: #ef4444; color: #ef4444; }
         .msg-bubble.bot pre {
@@ -335,24 +380,27 @@
             border-top: 1px solid var(--border);
             background: var(--surface);
             position: relative;
+            transition: background 0.25s, border-color 0.25s;
         }
         .input-row { display: flex; gap: 10px; align-items: flex-end; }
         .input-row textarea {
             flex: 1;
             background: var(--surface-2);
             border: 1px solid var(--border);
-            border-radius: 10px;
+            border-radius: 12px;
             color: var(--text);
-            padding: 10px 14px;
-            font-size: 13px;
+            padding: 12px 16px;
+            font-size: 13.5px;
             font-family: inherit;
             resize: none;
             outline: none;
-            min-height: 44px;
+            min-height: 48px;
             max-height: 120px;
-            line-height: 1.4;
+            line-height: 1.5;
+            letter-spacing: 0.1px;
+            transition: background 0.25s, border-color 0.25s;
         }
-        .input-row textarea:focus { border-color: var(--orange); }
+        .input-row textarea:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(254,108,25,0.1); }
         .input-row textarea::placeholder { color: var(--text-muted); }
         .input-row .send-btn {
             width: 44px; height: 44px;
@@ -385,13 +433,14 @@
             right: 20px;
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 10px;
-            box-shadow: 0 -4px 24px rgba(0,0,0,0.5);
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
             max-height: 260px;
             overflow-y: auto;
             display: none;
             z-index: 100;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+            transition: background 0.25s, border-color 0.25s;
         }
         .autocomplete-dropdown.active { display: block; }
         .ac-item {
@@ -439,8 +488,8 @@
             overflow: hidden;
         }
         .empty-state .big-logo img { width: 100%; height: 100%; object-fit: cover; }
-        .empty-state h2 { font-size: 16px; color: var(--text-dim); margin-bottom: 6px; }
-        .empty-state p { font-size: 12px; line-height: 1.5; max-width: 320px; }
+        .empty-state h2 { font-size: 18px; font-weight: 700; color: var(--text-dim); margin-bottom: 6px; letter-spacing: -0.3px; }
+        .empty-state p { font-size: 13px; line-height: 1.6; max-width: 340px; letter-spacing: 0.1px; }
         .empty-state .example-chips {
             display: flex; flex-wrap: wrap; gap: 6px;
             justify-content: center; margin-top: 14px;
@@ -488,6 +537,7 @@
         <div class="chat-header">
             <span class="title">Chat</span>
             <div class="actions">
+                <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
                 <button onclick="toggleCatalogue()">Catalogue</button>
                 <button onclick="downloadChat('json')" title="Download chat as JSON">📄</button>
                 <button onclick="downloadChat('txt')" title="Download chat as TXT">📋</button>
@@ -1187,7 +1237,26 @@
             return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
 
+        // ─── Theme ───
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.getAttribute('data-theme') !== 'light';
+            html.setAttribute('data-theme', isDark ? 'light' : '');
+            document.getElementById('theme-toggle').textContent = isDark ? '☀️' : '🌙';
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        }
+
+        function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+            const useLight = saved ? saved === 'light' : prefersLight;
+            const html = document.documentElement;
+            html.setAttribute('data-theme', useLight ? 'light' : '');
+            document.getElementById('theme-toggle').textContent = useLight ? '☀️' : '🌙';
+        }
+
         // ─── Init ───
+        initTheme();
         loadModels();
         loadAgents();
         loadConversations();
