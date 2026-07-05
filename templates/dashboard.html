@@ -875,7 +875,7 @@
             const filtered = acFilter ? items.filter(x => x.name.toLowerCase().includes(acFilter)) : items;
             if (acIndex >= filtered.length) acIndex = filtered.length - 1;
             list.innerHTML = filtered.slice(0, 100).map((item, i) => `
-                <div class="ac-item${i === acIndex ? ' active-item' : ''}" onmouseover="acIndex=${i};renderACList()" onclick="selectAC('${escHtml(item.name)}')">
+                <div class="ac-item${i === acIndex ? ' active-item' : ''}" data-name="${escHtml(item.name)}" onmouseover="acIndex=${i};renderACList()">
                     <span class="ac-prefix">${acMode === 'agent' ? '@' : '$'}</span>
                     <span>${escHtml(item.name)}</span>
                     <span class="ac-desc">${escHtml(item.description || '')}</span>
@@ -885,6 +885,14 @@
                 list.innerHTML = '<div class="ac-item" style="color:var(--text-muted)">No matches</div>';
             }
         }
+
+        // Click delegation for dropdown items (more reliable than inline onclick)
+        document.getElementById('ac-list').addEventListener('click', function(e) {
+            const item = e.target.closest('.ac-item');
+            if (item) {
+                selectAC(item.dataset.name);
+            }
+        });
 
         function selectAC(name) {
             if (acMode === 'agent') {
@@ -917,19 +925,19 @@
             input.value = '';
             input.style.height = 'auto';
 
-            // Strip @prefix / $prefix if typed manually
-            let msgText = text;
-            const agentMatch = msgText.match(/^@(\S+)\s*/);
-            const skillMatch = msgText.match(/^\$(\S+)\s*/);
-            if (agentMatch) {
-                setModeAgent(agentMatch[1]);
-                msgText = msgText.slice(agentMatch[0].length);
-            }
-            if (skillMatch) {
-                setModeSkill(skillMatch[1]);
-                msgText = msgText.slice(skillMatch[0].length);
-            }
-            if (!msgText.trim()) return;
+            // Strip @mention and $mention from text, set agent/skill mode
+            let msgText = text.trim();
+            if (/^@$|^@\s+$/.test(msgText) || /^\$$|^\$\s+$/.test(msgText)) return;
+            msgText = msgText.replace(/@(\S+)/g, function(m, name) {
+                setModeAgent(name);
+                return '';
+            });
+            msgText = msgText.replace(/\$(\S+)/g, function(m, name) {
+                setModeSkill(name);
+                return '';
+            });
+            msgText = msgText.replace(/\s{2,}/g, ' ').trim();
+            if (!msgText) return;
 
             addMessage('user', msgText, {});
 
@@ -1015,13 +1023,12 @@
             }
         }
 
-        document.getElementById('chat-input').addEventListener('input', function() {
+        document.getElementById('chat-input').addEventListener('input', function(e) {
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-            // Re-filter autocomplete on every keystroke
             const dd = document.getElementById('ac-dropdown');
             if (dd.classList.contains('active')) {
-                // Check if @ or $ still exists before cursor
+                // Re-filter on each keystroke while dropdown is open
                 const cursor = this.selectionStart;
                 const text = this.value.slice(0, cursor);
                 if (!text.match(/[@$]/)) {
@@ -1030,15 +1037,10 @@
                 }
                 updateACFilter();
                 renderACList();
-            } else {
-                // Detect new @ or $ trigger
-                const cursor = this.selectionStart;
-                const before = this.value.slice(0, cursor);
-                if (before.endsWith('@')) {
-                    showAC('agent');
-                } else if (before.endsWith('$')) {
-                    showAC('skill');
-                }
+            } else if (e && e.data === '@') {
+                showAC('agent');
+            } else if (e && e.data === '$') {
+                showAC('skill');
             }
         });
 
@@ -1075,7 +1077,7 @@
             const filteredAgents = agentQ ? allAgents.filter(a => a.name.toLowerCase().includes(agentQ)) : allAgents;
             agentCount.textContent = `(${filteredAgents.length})`;
             agentGrid.innerHTML = filteredAgents.map(a =>
-                `<div class="cat-card" onclick="sendExample('agent: ${a.name}: ')"><span class="cat-pfx">agent:</span> ${a.name}</div>`
+                `<div class="cat-card" onclick="setModeFromCatalogue('agent','${escHtml(a.name)}')"><span class="cat-pfx">@</span> ${a.name}</div>`
             ).join('');
 
             const skillGrid = document.getElementById('catalogue-skills');
@@ -1083,11 +1085,20 @@
             const filteredSkills = skillQ ? allSkills.filter(s => s.name.toLowerCase().includes(skillQ)) : allSkills;
             skillCount.textContent = `(${filteredSkills.length})`;
             skillGrid.innerHTML = filteredSkills.map(s =>
-                `<div class="cat-card" title="${escHtml(s.description || '')}">${s.name}</div>`
+                `<div class="cat-card" onclick="setModeFromCatalogue('skill','${escHtml(s.name)}')" title="${escHtml(s.description || '')}"><span class="cat-pfx">$</span> ${s.name}</div>`
             ).join('');
         }
 
         function filterCatalogue() { renderCatalogue(); }
+
+        function setModeFromCatalogue(type, name) {
+            if (type === 'agent') {
+                setModeAgent(name);
+            } else {
+                setModeSkill(name);
+            }
+            toggleCatalogue();
+        }
 
         function sendExample(text) {
             document.getElementById('chat-input').value = text;

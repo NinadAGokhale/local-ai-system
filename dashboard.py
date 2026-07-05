@@ -205,8 +205,7 @@ def api_chat():
     if s.current_agent:
         message = f"agent: {s.current_agent}: {message}"
     if s.current_skill:
-        if not s.current_agent:
-            message = f"skill: {s.current_skill}: {message}"
+        message = f"skill: {s.current_skill}: {message}"
 
     session_manager.add_to_history(phone, "user", data["message"])
 

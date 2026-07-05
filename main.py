@@ -4,7 +4,7 @@
 import os
 from typing import Optional
 
-from opencode_wrapper import run_opencode, run_agent
+from opencode_wrapper import run_opencode, run_agent, run_ollama
 from command_parser import parse_command, CommandType, AGENT_ALIASES
 from response_formatter import format_response
 from session_manager import SessionManager
@@ -13,12 +13,30 @@ from message_logger import MessageMiddleware, log_requirement
 session_manager = SessionManager()
 
 
+def _resolve_model(phone: str, text: str, model_override: Optional[str] = None) -> tuple[str, str]:
+    """Resolve the model and cleaned text, considering session state."""
+    session = session_manager.get_or_create(phone)
+    cmd_type, cleaned_text, model = parse_command(text)
+
+    if model_override is not None:
+        model = model_override
+        session_manager.set_model(phone, model)
+        session.current_model = model
+    elif model is not None:
+        session_manager.set_model(phone, model)
+        session.current_model = model
+    else:
+        model = session.current_model
+
+    return cmd_type, cleaned_text, model
+
+
 def _handle_message(phone: str, text: str, model_override: Optional[str] = None) -> str:
     """Process an incoming WhatsApp message (internal, no logging)."""
     session = session_manager.get_or_create(phone)
     session.last_command = text
 
-    cmd_type, cleaned_text, model = parse_command(text)
+    cmd_type, cleaned_text, model = _resolve_model(phone, text, model_override)
 
     if cmd_type == CommandType.STATUS:
         return get_status()
@@ -33,19 +51,9 @@ def _handle_message(phone: str, text: str, model_override: Optional[str] = None)
         return execute_search(cleaned_text)
 
     if cmd_type == CommandType.AGENT:
-        return execute_agent(cleaned_text)
+        return execute_agent(cleaned_text, model)
 
-    # Use model_override if provided (e.g., from web UI dropdown)
-    if model_override is not None:
-        model = model_override
-        session_manager.set_model(phone, model)
-        session.current_model = model
-    elif model is not None:
-        session_manager.set_model(phone, model)
-        session.current_model = model
-    else:
-        model = session.current_model
-
+    # SKILL and UNKNOWN both go to run_opencode
     result = run_opencode(cleaned_text, model=model)
     formatted = format_response(result, full=phone == "web-ui")
 
@@ -111,7 +119,7 @@ def execute_file_op(command: str) -> str:
     return "File operations: read <path>"
 
 
-def execute_agent(command: str) -> str:
+def execute_agent(command: str, model: str) -> str:
     """Handle agent: prefix — routes to opencode agent with tool execution."""
     parts = command.strip().split(maxsplit=1)
     if not parts:
@@ -126,7 +134,14 @@ def execute_agent(command: str) -> str:
     if not task:
         return f"Agent '{agent_name}' selected. Send your task after the agent name.\nExample: agent: {agent_name}: build a todo app"
 
-    result = run_agent(agent_name, task)
+    # For Ollama models, use direct API with agent context in prompt
+    if model and model.startswith("ollama/"):
+        prompt = f"You are acting as the agent '{agent_name}'. {task}"
+        result = run_ollama(prompt, model)
+    else:
+        # For opencode cloud or other, use opencode CLI with --agent
+        result = run_agent(agent_name, task)
+
     return format_response(result)
 
 

@@ -12,6 +12,7 @@ class CommandType(Enum):
     SEARCH = "search"
     STATUS = "status"
     AGENT = "agent"
+    SKILL = "skill"
     UNKNOWN = "unknown"
 
 
@@ -24,6 +25,7 @@ MODEL_MAP = {
     CommandType.SEARCH: None,
     CommandType.STATUS: None,
     CommandType.AGENT: None,
+    CommandType.SKILL: None,
     CommandType.UNKNOWN: None,
 }
 
@@ -51,6 +53,7 @@ PREFIX_PATTERNS = {
     CommandType.FILE: r'^(?:file|read|write|edit|cat)\b',
     CommandType.SEARCH: r'^(?:search|find|grep|locate)\b',
     CommandType.STATUS: r'^(?:status|health|uptime|info)$',
+    CommandType.SKILL: r'^(?:skill)\b',
 }
 
 

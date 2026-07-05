@@ -58,7 +58,9 @@ def run_ollama(command: str, model: str = DEFAULT_MODEL) -> str:
 
 
 def run_agent(agent_name: str, command: str) -> str:
-    """Run opencode with --agent, execute tool calls locally, return summary."""
+    """Run opencode with --agent, execute tool calls locally, return summary.
+    Falls back to run_opencode_cli if --agent fails.
+    """
     try:
         proc = subprocess.run(
             ["opencode", "run", "--agent", agent_name, "--auto", command],
@@ -74,8 +76,20 @@ def run_agent(agent_name: str, command: str) -> str:
     except Exception as e:
         return f"Error: {e}"
 
+    # If --agent returned a cloud API error, fall back to opencode run --model
+    if _is_opencode_error(output):
+        return run_opencode_cli(f"As agent '{agent_name}', {command}")
     results = _execute_tool_calls(output)
     return results
+
+
+def _is_opencode_error(output: str) -> bool:
+    """Check if output is an opencode cloud API error."""
+    try:
+        obj = json.loads(output.strip())
+        return isinstance(obj, dict) and "name" in obj and "ref" in obj.get("data", {})
+    except (json.JSONDecodeError, ValueError):
+        return False
 
 
 def _execute_tool_calls(raw: str) -> str:
