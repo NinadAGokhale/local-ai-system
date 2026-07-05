@@ -13,8 +13,9 @@ from src.core.message_logger import get_recent_messages, get_recent_requirements
 from src.core.command_parser import parse_command, CommandType, AGENT_ALIASES
 from src.core.session_manager import SessionManager
 from src.core.handler import handle_message
-from src.core.content_loader import get_skill_content, get_agent_content
+from src.core.content_loader import get_skill_content, get_agent_content, get_persona_content
 import traceback
+import werkzeug.exceptions
 
 _DOT_ENV = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(_DOT_ENV):
@@ -33,10 +34,11 @@ app = Flask(__name__,
 
 @app.errorhandler(Exception)
 def _handle_exception(e):
-    """Catch-all: return JSON instead of HTML for API errors."""
     if request.path.startswith("/api/"):
         tb = traceback.format_exc()
         return jsonify({"error": str(e), "traceback": tb}), 500
+    if isinstance(e, (werkzeug.exceptions.NotFound, werkzeug.exceptions.MethodNotAllowed)):
+        return e
     raise e
 _SECRET_KEY_FILE = os.path.join(os.path.dirname(__file__), '.secret_key')
 if os.path.exists(_SECRET_KEY_FILE):
@@ -312,12 +314,10 @@ def api_chat():
 
     s = session_manager.get_or_create(phone)
 
-    # Prefix message so parse_command detects agent/skill mode.
-    # Handler reads session.current_skills and session.current_agent directly.
+    # Only prefix with agent if explicitly set — skills should not auto-prefix.
+    # Skills are only activated when user types $skillname: in their message.
     if s.current_agent:
         message = f"agent: {s.current_agent}: {message}"
-    elif s.current_skills:
-        message = f"skill: {s.current_skills[0]}: {message}"
 
     session_manager.add_to_history(phone, "user", data["message"])
 

@@ -110,6 +110,8 @@ def test_api_set_agent():
 
 def test_api_set_skill():
     client = dashboard.app.test_client()
+    # Clear session state from previous tests/API calls
+    dashboard.session_manager.clear_session("web-ui")
     # Toggle on
     resp = client.post("/api/skill", json={"skill": "content-production"})
     assert resp.status_code == 200

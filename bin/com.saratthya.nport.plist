@@ -28,6 +28,8 @@
     <dict>
         <key>TUNNEL_DNS_RESOLVER_ADDRS</key>
         <string>1.1.1.1:53</string>
+        <key>TUNNEL_TRANSPORT_PROTOCOL</key>
+        <string>http2</string>
     </dict>
 </dict>
 </plist>
