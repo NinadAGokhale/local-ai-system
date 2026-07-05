@@ -8,106 +8,126 @@ coding, analysis, and automation.
 
 ```
 local-ai-system/
-├── src/                          # All source code
-│   ├── main.py                   # Entry point (python src/main.py)
-│   ├── core/                     # Core business logic
-│   │   ├── config.py             # Central configuration (paths, defaults)
-│   │   ├── command_parser.py     # Intent parsing (code/explain/agent/skill/...)
-│   │   ├── handler.py            # Message routing & execution
-│   │   ├── message_logger.py     # Logging middleware (messages.jsonl)
-│   │   ├── opencode_wrapper.py   # LLM API abstraction (Ollama + opencode CLI)
-│   │   ├── response_formatter.py # Output formatting & truncation
-│   │   └── session_manager.py    # Session persistence (.sessions.json)
-│   ├── web/                      # Flask web application
-│   │   ├── dashboard.py          # API routes & server
-│   │   ├── templates/            # Jinja2 templates
-│   │   └── static/               # Brand assets
-│   └── tests/                    # Comprehensive test suite (136 tests)
+├── src/
+│   ├── core/                      # Core business logic
+│   │   ├── config.py              # Central configuration (paths, defaults)
+│   │   ├── command_parser.py      # Intent parsing (agent/skill/...)
+│   │   ├── content_loader.py      # Loads agent .md / skill SKILL.md from disk
+│   │   ├── handler.py             # Message routing & execution
+│   │   ├── message_logger.py      # Logging middleware (messages.jsonl)
+│   │   ├── opencode_wrapper.py    # LLM API abstraction (Ollama + opencode CLI)
+│   │   ├── response_formatter.py  # Output formatting & truncation
+│   │   └── session_manager.py     # Session persistence (.sessions.json)
+│   ├── web/                       # Flask web application
+│   │   ├── dashboard.py           # API routes & server (waitress on port 5002)
+│   │   ├── .env.example           # Required env vars template
+│   │   ├── templates/             # Jinja2 templates
+│   │   └── static/                # Brand assets
+│   └── tests/                     # 137 tests, all passing
+├── bin/
+│   ├── serve_py.py                # Waitress entry point
+│   └── saratthya.sh              # Management script (start/stop/status/url/restart)
 ├── docs/
-│   └── swe/                      # SWE workflow documentation
-│       ├── SYS.md                # Orchestrator agent protocol
-│       ├── SWE1.md               # Planner / Spec agent
-│       ├── SWE2.md               # Implementation agent
-│       ├── SWE3.md               # Code restructuring & fixes
-│       └── SWE4.md               # Tests & results
-├── support-doc/                  # Brand images & marketing assets
-├── context_magament/             # Future feature — context management system
-├── agent/                        # Agent configuration
-├── logs/                         # Runtime logs (messages.jsonl, requirements.jsonl)
-├── .sessions.json                # Session persistence file
-└── main.py                       # Thin wrapper for backward compat
+│   ├── swe/                       # SWE workflow documentation
+│   └── ADDING-AGENTS-SKILLS.md    # Guide for adding agents & skills
+├── testing/
+│   └── agents-skills/             # Agent/skill audit reports & tests
+├── ~/.config/opencode/
+│   ├── agents/                    # 35 agent .md files (personas with tools)
+│   └── skills/                    # 362 skill directories (knowledge bundles)
+├── .sessions.json                 # Session persistence (auto-generated, gitignored)
+└── logs/                          # Runtime logs (messages.jsonl, gitignored)
 ```
 
 ## Quick Start
 
 ```bash
 # Install dependencies
-pip install flask
+pip install flask waitress
+
+# Configure users (copy and edit, never commit)
+cp src/web/.env.example src/web/.env
+# Edit src/web/.env with real passwords
 
 # Start the dashboard
-python src/main.py
+python bin/serve_py.py
 
-# Or via the thin root wrapper
-python main.py
+# Or use launchd (auto-restart on crash/reboot):
+bin/saratthya.sh start
+bin/saratthya.sh url
 ```
 
-Open http://localhost:5050 in your browser.
+Open http://localhost:5002 in your browser.
+
+### Public URL
+
+The dashboard is available at **https://saratthya-agentic.nport.link** via NPort tunnel (launchd-managed, auto-restarts).
 
 ### Login
 
-Default credentials:
-- **Username**: `user`
-- **Password**: `password123`
+Credentials are set via environment variables in `src/web/.env`:
+
+```
+SARATTHYA_SAEE_PASSWORD=your_password
+SARATTHYA_NINAD_PASSWORD=your_password
+SARATTHYA_SHOUNAK_PASSWORD=your_password
+SARATTHYA_SOHUM_PASSWORD=your_password
+```
 
 ## Key Features
 
-### Intent Parsing
-
-The system auto-detects command types from message prefixes:
-
-| Prefix | Type | Model |
-|--------|------|-------|
-| `code:` / `write:` | Code generation | `ollama/qwen2.5-coder:7b` |
-| `explain:` / `what:` | Explanation | `ollama/qwen3.5:4b` |
-| `reason:` / `analyze:` | Reasoning | `ollama/qwen3.5:9b` |
-| `shell:` / `run:` | Shell execution | None (local) |
-| `search:` / `find:` | File search | None (local) |
-| `agent:` / `persona:` | Agent routing | Configurable |
-| `skill:` | Skill execution | Configurable |
-| `status` | System status | None (local) |
-
 ### Agent & Skill System
 
-Select agents (@) or skills ($) from the chat UI or use text commands:
+| Concept | What it is | Stored in |
+|---------|-----------|-----------|
+| **Agent** (`@`) | A persona with tool access — who executes the task | `~/.config/opencode/agents/{name}.md` |
+| **Skill** (`$`) | A knowledge/instruction bundle — what methodology to follow | `~/.config/opencode/skills/{name}/SKILL.md` |
 
-```
-agent: cto: build a roadmap for Q3
-skill: content-production: write a blog post about AI
-```
+- **One agent** at a time (single persona)
+- **Multiple skills** can be stacked (combined reference material)
+- Agents appear in the `@` autocomplete, skills in the `$` autocomplete
+- Browse all via the catalogue modal (📋 button)
 
 Available agent aliases: `cto`, `growth`, `founder`, `engineer`, `frontend`,
 `backend`, `fullstack`, `product`, `project`, `qa`, `devops`
 
+### Prompt Construction
+
+When an agent and skills are active, the prompt is built hierarchically:
+
+```
+[Agent: name]
+{agent personality, rules, and tool definitions}
+
+[Active Skills]
+=== Skill: name ===
+{methodology instructions}
+
+[User Request]
+{the actual task}
+```
+
 ### Model Routing
 
-- **Ollama models** (`ollama/qwen*`) — direct API calls with no-tools prompt
-- **Opencode cloud** (`opencode/deepseek*`) — CLI execution with full skill support
-- Model auto-resolves from command prefix, session state, or UI dropdown
+- **Ollama models** (`ollama/qwen*`) — direct API calls, no tools
+- **Opencode cloud** (`opencode/deepseek*`) — CLI execution with agent/skill context
+- Model is selected per-session via the sidebar dropdown
+
+### Multi-User Chat
+
+- Per-user session isolation (each user sees only their conversations)
+- Persistent conversation history in sidebar
+- Switch between conversations without losing context
+- Dark/light theme toggle (persisted in localStorage)
+- Collapsible sidebar (remembers state on desktop)
 
 ## Testing
 
 ```bash
-# Run all tests
 python -m pytest src/tests/ -v
-
-# Run specific module
-python -m pytest src/tests/test_opencode_wrapper.py -v
-
-# Run with coverage
-python -m pytest src/tests/ --cov=src
 ```
 
-All 136 tests pass across 8 test modules covering parsing, routing, error
+All 137 tests pass across 8 test modules covering parsing, routing, error
 handling, API endpoints, persistence, middleware, and edge cases.
 
 ## Repository
