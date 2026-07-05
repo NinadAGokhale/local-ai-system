@@ -315,6 +315,22 @@ def api_set_skill():
     return jsonify({"ok": True, "current_skills": session_manager.get_current_skills(phone)})
 
 
+EMOJI_CATEGORY = {
+    "🧠": "reasoning",
+    "📝": "coding",
+    "🌐": "general",
+    "⚡": "quick",
+}
+
+def _model_category(emoji, desc):
+    """Derive task category from emoji or desc. Falls back to 'general'."""
+    if emoji in EMOJI_CATEGORY:
+        return EMOJI_CATEGORY[emoji]
+    for e, cat in EMOJI_CATEGORY.items():
+        if e in desc:
+            return cat
+    return "general"
+
 @app.route("/api/models")
 def api_models():
     ollama_models = []
@@ -334,6 +350,7 @@ def api_models():
                     "name": meta["label"],
                     "emoji": meta["emoji"],
                     "desc": meta["desc"],
+                    "category": _model_category(meta["emoji"], meta["desc"]),
                 })
         ollama_up = True
     except Exception:
@@ -341,7 +358,7 @@ def api_models():
 
     OPENCODE_GO_MODELS = {
         "opencode-go/deepseek-v4-flash": {"emoji": "☁️", "label": "DeepSeek V4 Flash", "desc": "⚡ Fast – 2-8 sec. Best value cloud model."},
-        "opencode-go/deepseek-v4-pro": {"emoji": "☁️", "label": "DeepSeek V4 Pro", "desc": "🧠 Thinking – 10-40 sec. DeepSeek's most powerful. Great for complex analysis."},
+        "opencode-go/deepseek-v4-pro": {"emoji": "☁️", "label": "DeepSeek V4 Pro", "desc": "🧠 Thinking – 10-40 sec. DeepSeek's most powerful."},
         "opencode-go/glm-5.1": {"emoji": "☁️", "label": "GLM 5.1", "desc": "🌐 General – 3-10 sec. ZhipuAI capable chat model."},
         "opencode-go/glm-5.2": {"emoji": "☁️", "label": "GLM 5.2", "desc": "🌐 General – 3-10 sec. ZhipuAI latest."},
         "opencode-go/kimi-k2.6": {"emoji": "☁️", "label": "Kimi K2.6", "desc": "🌐 General – 3-10 sec. Moonshot assistant."},
@@ -355,7 +372,8 @@ def api_models():
         "opencode-go/qwen3.7-plus": {"emoji": "☁️", "label": "Qwen 3.7 Plus", "desc": "🌐 General – 3-10 sec. Alibaba's balanced model."},
     }
     opencode_models = [
-        {"id": mid, "name": meta["label"], "emoji": meta["emoji"], "desc": meta["desc"]}
+        {"id": mid, "name": meta["label"], "emoji": meta["emoji"],
+         "desc": meta["desc"], "category": _model_category(meta["emoji"], meta["desc"])}
         for mid, meta in OPENCODE_GO_MODELS.items()
     ]
 
@@ -373,6 +391,7 @@ def api_models():
                 "name": meta["label"],
                 "emoji": meta["emoji"],
                 "desc": meta["desc"],
+                "category": _model_category(meta["emoji"], meta["desc"]),
             })
     except Exception:
         pass

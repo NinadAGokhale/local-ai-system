@@ -84,10 +84,47 @@
         .model-bar {
             display: flex;
             flex-direction: column;
-            gap: 3px;
-            padding: 8px 12px;
+            gap: 6px;
+            padding: 10px 12px;
             border-bottom: 1px solid var(--border);
             transition: border-color 0.25s;
+        }
+        .provider-tabs {
+            display: flex;
+            gap: 4px;
+        }
+        .provider-tab {
+            flex: 1;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-muted);
+            padding: 5px 4px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+            font-family: var(--font);
+        }
+        .provider-tab:hover {
+            color: var(--text);
+            border-color: var(--orange);
+        }
+        .provider-tab.active {
+            background: var(--orange);
+            color: #fff;
+            border-color: var(--orange);
+        }
+        .provider-tab.down {
+            border-color: var(--danger);
+            opacity: 0.6;
+        }
+        .provider-tab.down.active {
+            background: var(--danger);
+            border-color: var(--danger);
+            opacity: 0.8;
         }
         .model-bar select {
             width: 100%;
@@ -592,10 +629,12 @@
             </div>
         </div>
         <div class="model-bar">
-            <select id="model-select"></select>
-            <div class="model-legend" id="model-legend">
-                ⚡=fast · 🌐=balanced · 🧠=thinking · 📝=coding · ☁️=cloud
+            <div class="provider-tabs" id="provider-tabs">
+                <button class="provider-tab active" data-provider="ollama">Ollama</button>
+                <button class="provider-tab" data-provider="mlx">MLX</button>
+                <button class="provider-tab" data-provider="opencode-go">Cloud</button>
             </div>
+            <select id="model-select"></select>
         </div>
         <div class="conv-header">
             <label>Conversations</label>
@@ -1279,55 +1318,89 @@
             sendMessage();
         }
 
-        // ─── Model list ───
+        // ─── Model selector ───
+        let _cachedModels = {};
+
+        const CATEGORY_CONFIG = [
+            {key: "quick",     label: "⚡ Quick"},
+            {key: "general",   label: "🌐 General"},
+            {key: "coding",    label: "📝 Coding"},
+            {key: "reasoning", label: "🧠 Reasoning"},
+        ];
+
         function modelOptionHtml(id, label, emoji, desc) {
             const e = emoji || '🤖';
             const title = desc ? `title="${escHtml(desc)}"` : '';
             return `<option value="${id}" ${title}>${e} ${escHtml(label)}</option>`;
         }
 
-        function providerOptgroup(label, models, running) {
-            let h = `<optgroup label="${label}">`;
-            if (!running) {
-                h += `<option disabled>Server not running</option>`;
-            } else if (models && models.length) {
-                models.forEach(m => h += modelOptionHtml(m.id, m.name, m.emoji, m.desc));
-            } else {
-                h += `<option disabled>No models installed</option>`;
-            }
-            h += '</optgroup>';
-            return h;
-        }
+        function renderModelSelect(provider) {
+            const select = document.getElementById('model-select');
+            const models = _cachedModels[provider] || [];
+            let prevValue = select.value;
+            let html = '';
 
-        function sectionLabel(text) {
-            return `<option disabled style="color:var(--orange);font-weight:600;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;padding:6px 8px 2px;">${text}</option>`;
+            if (!models.length) {
+                html = '<option disabled>No models available</option>';
+            } else {
+                CATEGORY_CONFIG.forEach(cat => {
+                    const items = models.filter(m => m.category === cat.key);
+                    if (!items.length) return;
+                    html += `<optgroup label="${cat.label}">`;
+                    items.forEach(m => html += modelOptionHtml(m.id, m.name, m.emoji, m.desc));
+                    html += '</optgroup>';
+                });
+            }
+
+            select.innerHTML = html;
+
+            // Preserve previous selection if still valid
+            if (prevValue && [...select.options].some(o => o.value === prevValue)) {
+                select.value = prevValue;
+            } else if (select.options.length > 0 && select.options[0].value) {
+                select.value = select.options[0].value;
+            }
         }
 
         async function loadModels() {
             try {
                 const r = await fetch('/api/models');
                 const data = await r.json();
-                const select = document.getElementById('model-select');
-                let html = '';
-
-                // ── Local section ──
-                html += sectionLabel('━━ Local (on your Mac) ━━');
-                html += providerOptgroup('  Ollama',
-                    data.ollama_models || [],
-                    data.ollama_up);
-                html += providerOptgroup('  MLX (Apple Silicon)',
-                    data.mlx_models || [],
-                    data.mlx_up);
-
-                // ── Cloud section ──
-                html += sectionLabel('━━ Cloud (Opencode Go) ━━');
-                html += providerOptgroup('  Opencode Go',
-                    (data.opencode_models || []).map(m => ({id:m.id, name:m.name, emoji:m.emoji, desc:m.desc})),
-                    data.opencode_up);
-
-                select.innerHTML = html;
+                _cachedModels = {
+                    ollama:       data.ollama_models || [],
+                    mlx:          data.mlx_models || [],
+                    'opencode-go': data.opencode_models || [],
+                    _up: {
+                        ollama:       data.ollama_up,
+                        mlx:          data.mlx_up,
+                        'opencode-go': data.opencode_up,
+                    }
+                };
+                updateProviderTabs();
             } catch(e) {}
         }
+
+        function updateProviderTabs() {
+            const tabs = document.querySelectorAll('.provider-tab');
+            const up = _cachedModels._up || {};
+            tabs.forEach(t => {
+                const p = t.dataset.provider;
+                if (up[p] === false) t.classList.add('down');
+                else t.classList.remove('down');
+            });
+            // Render for the active tab
+            const active = document.querySelector('.provider-tab.active');
+            const provider = active ? active.dataset.provider : 'ollama';
+            renderModelSelect(provider);
+        }
+
+        document.getElementById('provider-tabs').addEventListener('click', function(e) {
+            const tab = e.target.closest('.provider-tab');
+            if (!tab) return;
+            document.querySelectorAll('.provider-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            renderModelSelect(tab.dataset.provider);
+        });
 
         async function loadAgents() {
             try {
