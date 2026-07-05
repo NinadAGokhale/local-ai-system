@@ -1146,16 +1146,34 @@
                 popup.remove();
                 return;
             }
-            popup = document.createElement('div');
+            // If personas not loaded yet, fetch them live
+            if (!allPersonas.length) {
+                fetch('/api/personas').then(r => r.json()).then(d => {
+                    allPersonas = d.personas || [];
+                    showPersonaPopup(e);
+                }).catch(() => showPersonaPopup(e));
+                return;
+            }
+            showPersonaPopup(e);
+        }
+
+        function showPersonaPopup(e) {
+            let existing = document.getElementById('persona-popup');
+            if (existing) existing.remove();
+            const popup = document.createElement('div');
             popup.id = 'persona-popup';
             popup.className = 'persona-popup';
             let html = '<div class="persona-popup-header">Choose a Persona</div>';
-            allPersonas.forEach(p => {
-                const active = currentPersona === p.name ? ' active' : '';
-                html += `<div class="persona-option${active}" onclick="document.getElementById('persona-popup').remove(); setPersona('${escHtml(p.name)}')">🎭 ${escHtml(p.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}</div>`;
-            });
+            if (!allPersonas.length) {
+                html += '<div class="persona-option" style="color:var(--text-muted)">No personas available</div>';
+            } else {
+                allPersonas.forEach(p => {
+                    const active = currentPersona === p.name ? ' active' : '';
+                    html += `<div class="persona-option${active}" onclick="closePersonaPopup(); setPersona('${escHtml(p.name)}')">🎭 ${escHtml(p.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}</div>`;
+                });
+            }
             if (currentPersona) {
-                html += `<div class="persona-option persona-clear" onclick="document.getElementById('persona-popup').remove(); clearPersona()">Clear persona <span>&times;</span></div>`;
+                html += `<div class="persona-option persona-clear" onclick="closePersonaPopup(); clearPersona(event)">Clear persona <span>&times;</span></div>`;
             }
             popup.innerHTML = html;
             document.body.appendChild(popup);
@@ -1163,16 +1181,21 @@
             const chip = e.target.closest('.persona-chip');
             if (chip) {
                 const rect = chip.getBoundingClientRect();
-                popup.style.top = (rect.bottom + 4) + 'px';
-                popup.style.left = rect.left + 'px';
+                popup.style.top = Math.min(rect.bottom + 4, window.innerHeight - popup.offsetHeight - 10) + 'px';
+                popup.style.left = Math.min(rect.left, window.innerWidth - 220) + 'px';
             }
             // Close on outside click
             setTimeout(() => {
                 document.addEventListener('click', function h() {
-                    popup.remove();
+                    closePersonaPopup();
                     document.removeEventListener('click', h);
                 }, {once: true});
             }, 50);
+        }
+
+        function closePersonaPopup() {
+            const p = document.getElementById('persona-popup');
+            if (p) p.remove();
         }
 
         function setPersona(name) {
@@ -1645,6 +1668,7 @@
                 const data = await r.json();
                 allPersonas = data.personas || [];
             } catch(e) {}
+            renderModeBar();
         }
 
         function escHtml(s) {

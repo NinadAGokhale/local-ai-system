@@ -82,7 +82,9 @@ class SessionManager:
             # Update existing saved conversation in-place
             for c in session.conversations:
                 if c["id"] == session.current_conv_id:
-                    c["title"] = session.get_title()
+                    # Only auto-update title if not custom-renamed
+                    if not c.get("custom_renamed"):
+                        c["title"] = session.get_title()
                     c["history"] = list(session.history)
                     return
         # New unsaved conversation — create a new entry
@@ -91,6 +93,7 @@ class SessionManager:
             "title": session.get_title(),
             "history": list(session.history),
             "pinned": False,
+            "custom_renamed": False,
         })
 
     def add_to_history(self, phone: str, role: str, content: str, latency_ms: Optional[float] = None):
@@ -177,6 +180,7 @@ class SessionManager:
         for c in session.conversations:
             if c["id"] == conv_id:
                 c["title"] = title
+                c["custom_renamed"] = True
                 break
         self._save()
         return self.get_conversations(phone)
