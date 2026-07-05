@@ -201,6 +201,12 @@ def index():
     phone = _web_phone()
     s = session_manager.get_or_create(phone)
     conversations = session_manager.get_conversations(phone)
+    # Load personas for the empty state quick-pick cards
+    _personas_dir = Path(os.path.expanduser("~/.config/opencode/personas"))
+    _personas = []
+    if _personas_dir.exists():
+        for _f in sorted(_personas_dir.glob("*.md")):
+            _personas.append(_f.stem)
     resp = make_response(render_template(
         "dashboard.html",
         conversations=conversations,
@@ -209,6 +215,7 @@ def index():
         current_persona=s.current_persona,
         current_skills=s.current_skills,
         username=session.get("username", "user"),
+        personas=_personas,
     ))
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     resp.headers["Pragma"] = "no-cache"

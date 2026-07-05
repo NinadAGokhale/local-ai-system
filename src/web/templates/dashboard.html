@@ -613,6 +613,20 @@
         .empty-card-icon { font-size: 18px; display: block; margin-bottom: 6px; }
         .empty-card-title { font-size: 12px; font-weight: 600; display: block; color: var(--text); margin-bottom: 2px; }
         .empty-card-desc { font-size: 10px; color: var(--text-muted); display: block; }
+        .empty-section-label {
+            font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;
+            letter-spacing: 0.5px; margin: 20px 0 10px; text-align: center;
+        }
+        .empty-personas {
+            display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+            max-width: 380px; width: 100%;
+        }
+        .empty-persona-card {
+            background: var(--surface-2); border: 1px solid var(--border);
+            border-radius: 20px; padding: 6px 14px; cursor: pointer;
+            transition: all 0.2s; font-size: 11px; font-weight: 500;
+        }
+        .empty-persona-card:hover { border-color: var(--orange); color: var(--orange-light); transform: translateY(-1px); }
 
         /* ─── Sidebar collapse ─── */
         .sidebar {
@@ -774,6 +788,14 @@
                             <span class="empty-card-title">Hire an Agent</span>
                             <span class="empty-card-desc">CTO, Engineer, Growth expert</span>
                         </div>
+                    </div>
+                    <div class="empty-section-label">🎭 Try a Persona</div>
+                    <div class="empty-personas">
+                        {% for p in personas %}
+                        <div class="empty-persona-card" onclick="setPersona('{{ p }}'); sendExample('hi')">
+                            <span class="epc-name">{{ p.replace('-', ' ').title() }}</span>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
             {% endif %}
@@ -1090,8 +1112,29 @@
                                 <span class="empty-card-desc">CTO, Engineer, Growth expert</span>
                             </div>
                         </div>
+                        <div class="empty-section-label">🎭 Try a Persona</div>
+                        <div class="empty-personas" id="empty-personas"></div>
                     </div>
                 `;
+                // Populate personas from API data
+                const ep = document.getElementById('empty-personas');
+                if (ep && allPersonas.length) {
+                    ep.innerHTML = allPersonas.map(p =>
+                        \`<div class="empty-persona-card" onclick="setPersona('\${escHtml(p.name)}'); sendExample('hi')">
+                            <span class="epc-name">\${escHtml(p.name.replace(/-/g, ' ').replace(/\\b\\w/g, c => c.toUpperCase()))}</span>
+                        </div>\`
+                    ).join('');
+                } else if (ep) {
+                    // Fetch personas if not loaded yet
+                    fetch('/api/personas').then(r => r.json()).then(d => {
+                        allPersonas = d.personas || [];
+                        ep.innerHTML = allPersonas.map(p =>
+                            \`<div class="empty-persona-card" onclick="setPersona('\${escHtml(p.name)}'); sendExample('hi')">
+                                <span class="epc-name">\${escHtml(p.name.replace(/-/g, ' ').replace(/\\b\\w/g, c => c.toUpperCase()))}</span>
+                            </div>\`
+                        ).join('');
+                    }).catch(() => {});
+                }
                 return;
             }
             container.innerHTML = '';
