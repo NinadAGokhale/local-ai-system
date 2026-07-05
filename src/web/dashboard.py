@@ -61,6 +61,10 @@ def login_required(f):
     return decorated
 
 
+def _web_phone():
+    return session.get("username", "web-ui")
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -89,7 +93,7 @@ def logout():
 @app.route("/")
 @login_required
 def index():
-    phone = "web-ui"
+    phone = _web_phone()
     s = session_manager.get_or_create(phone)
     conversations = session_manager.get_conversations(phone)
     resp = make_response(render_template(
@@ -125,7 +129,7 @@ def api_create_requirement():
     if not data or "text" not in data:
         return jsonify({"error": "Missing 'text' field"}), 400
 
-    phone = data.get("phone", "web-ui")
+    phone = data.get("phone") or _web_phone()
     text = data["text"]
 
     cmd_type, cleaned, model = parse_command(text)
@@ -191,7 +195,7 @@ def api_status():
 
 @app.route("/api/conversations", methods=["GET"])
 def api_conversations():
-    phone = request.args.get("phone", "web-ui")
+    phone = request.args.get("phone") or _web_phone()
     convs = session_manager.get_conversations(phone)
     return jsonify(convs)
 
@@ -199,7 +203,7 @@ def api_conversations():
 @app.route("/api/conversations", methods=["POST"])
 def api_switch_conversation():
     data = request.get_json() or {}
-    phone = data.get("phone", "web-ui")
+    phone = data.get("phone") or _web_phone()
     conv_id = data.get("conv_id")
     if not conv_id:
         return jsonify({"error": "Missing conv_id"}), 400
@@ -215,7 +219,7 @@ def api_switch_conversation():
 @app.route("/api/chat/new", methods=["POST"])
 def api_chat_new():
     data = request.get_json() or {}
-    phone = data.get("phone", "web-ui")
+    phone = data.get("phone") or _web_phone()
     session_manager.new_conversation(phone)
     return jsonify({"status": "ok"})
 
@@ -228,7 +232,7 @@ def api_chat():
         return jsonify({"error": "Missing 'message' field"}), 400
 
     message = data["message"]
-    phone = data.get("phone", "web-ui")
+    phone = data.get("phone") or _web_phone()
     model_override = data.get("model")
 
     s = session_manager.get_or_create(phone)
@@ -265,7 +269,7 @@ def api_me():
 
 @app.route("/api/chat/download", methods=["GET"])
 def api_chat_download():
-    phone = request.args.get("phone", "web-ui")
+    phone = request.args.get("phone") or _web_phone()
     fmt = request.args.get("format", "json")
     s = session_manager.get_or_create(phone)
     if fmt == "txt":
@@ -282,7 +286,7 @@ def api_chat_download():
 @app.route("/api/agent", methods=["POST"])
 def api_set_agent():
     data = request.get_json() or {}
-    phone = data.get("phone", "web-ui")
+    phone = data.get("phone") or _web_phone()
     agent = data.get("agent") or None
     session_manager.set_agent(phone, agent)
     return jsonify({"ok": True, "current_agent": agent})
@@ -291,7 +295,7 @@ def api_set_agent():
 @app.route("/api/skill", methods=["POST"])
 def api_set_skill():
     data = request.get_json() or {}
-    phone = data.get("phone", "web-ui")
+    phone = data.get("phone") or _web_phone()
     skill = data.get("skill") or None
     session_manager.set_skill(phone, skill)
     return jsonify({"ok": True, "current_skill": skill})

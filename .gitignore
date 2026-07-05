@@ -13,3 +13,4 @@ context_magament/
 
 src/web/.env
 src/web/.secret_key
+bugs/

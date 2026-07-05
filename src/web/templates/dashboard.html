@@ -44,7 +44,7 @@
             font-family: var(--font);
             background: var(--bg);
             color: var(--text);
-            height: 100vh;
+            height: 100dvh;
             display: flex;
             overflow: hidden;
             transition: background 0.25s, color 0.25s;
@@ -508,6 +508,68 @@
         .empty-state .example-chips span:hover { border-color: var(--orange); color: var(--orange-light); }
 
         @media (max-width: 768px) { .sidebar { display: none; } }
+
+        /* ─── Sidebar collapse ─── */
+        .sidebar {
+            transition: transform 0.3s ease, margin 0.3s ease;
+        }
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+            margin-left: -280px;
+        }
+        .sidebar.collapsed + .main {
+            max-width: 100vw;
+        }
+
+        /* ─── Sidebar toggle button ─── */
+        .sidebar-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px; height: 30px;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-dim);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            transition: background 0.15s, color 0.15s;
+        }
+        .sidebar-toggle:hover { background: var(--surface-2); color: var(--text); }
+
+        /* ─── Mobile responsive ─── */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                z-index: 200;
+                height: 100dvh;
+                width: 260px;
+                transform: translateX(-100%);
+                box-shadow: var(--shadow-md);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 199;
+            }
+            .sidebar-overlay.active { display: block; }
+            .sidebar-toggle { display: inline-flex !important; }
+            .msg-bubble { max-width: 90%; font-size: 15px; padding: 10px 14px; }
+            .chat-header .title { font-size: 12px; }
+            .input-row textarea { font-size: 16px; } /* prevent iOS zoom */
+            .empty-state p { font-size: 14px; }
+            .empty-state h2 { font-size: 20px; }
+        }
+        @media (min-width: 769px) {
+            .sidebar-toggle { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -534,10 +596,13 @@
         </div>
     </div>
 
+    <!-- ─── Mobile sidebar overlay ─── -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <!-- ─── Main Chat ─── -->
     <div class="main">
         <div class="chat-header">
-            <span class="title">Chat</span>
+            <span class="title"><button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">☰</button> Chat</span>
             <div class="actions">
                 <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
                 <button onclick="toggleCatalogue()">Catalogue</button>
@@ -722,7 +787,7 @@
 
         async function loadConversations() {
             try {
-                const r = await fetch('/api/conversations?phone=web-ui');
+                const r = await fetch('/api/conversations');
                 const convs = await r.json();
                 renderConversations(convs);
             } catch(e) { console.error('Failed to load conversations:', e); }
@@ -733,7 +798,7 @@
                 const r = await fetch('/api/conversations', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({phone: 'web-ui', conv_id: convId}),
+                    body: JSON.stringify({conv_id: convId}),
                 });
                 const data = await r.json();
                 renderMessages(data.history);
@@ -857,7 +922,7 @@
             fetch('/api/agent', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({phone: 'web-ui', agent: name}),
+                body: JSON.stringify({agent: name}),
             }).catch(() => {});
         }
 
@@ -868,7 +933,7 @@
             fetch('/api/agent', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({phone: 'web-ui', agent: null}),
+                body: JSON.stringify({agent: null}),
             }).catch(() => {});
         }
 
@@ -878,7 +943,7 @@
             fetch('/api/skill', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({phone: 'web-ui', skill: name}),
+                body: JSON.stringify({skill: name}),
             }).catch(() => {});
         }
 
@@ -889,7 +954,7 @@
             fetch('/api/skill', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({phone: 'web-ui', skill: null}),
+                body: JSON.stringify({skill: null}),
             }).catch(() => {});
         }
 
@@ -1006,7 +1071,6 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         message: msgText,
-                        phone: 'web-ui',
                         model: selectedModel,
                     }),
                 });
@@ -1133,7 +1197,6 @@
                 await fetch('/api/chat/new', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({phone: 'web-ui'}),
                 });
             } catch(e) {}
             currentAgent = null;
@@ -1257,8 +1320,31 @@
             document.getElementById('theme-toggle').textContent = useLight ? '☀️' : '🌙';
         }
 
+        // ─── Sidebar toggle ───
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile) {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('active');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                const collapsed = sidebar.classList.contains('collapsed');
+                localStorage.setItem('sidebar_collapsed', collapsed ? '1' : '0');
+            }
+        }
+
+        function initSidebar() {
+            const isMobile = window.innerWidth <= 768;
+            if (!isMobile && localStorage.getItem('sidebar_collapsed') === '1') {
+                document.querySelector('.sidebar').classList.add('collapsed');
+            }
+        }
+
         // ─── Init ───
         initTheme();
+        initSidebar();
         loadModels();
         loadAgents();
         loadConversations();
