@@ -173,3 +173,35 @@ def test_api_conversations():
     assert resp.status_code == 200
     data = json.loads(resp.data)
     assert isinstance(data, list)
+
+
+def test_dashboard_html_has_autocomplete_js():
+    """Regression: @/$ autocomplete must be wired through both keydown + input."""
+    with open("src/web/templates/dashboard.html") as f:
+        html = f.read()
+
+    # keydown handler must set _pendingACTag for @ and $
+    assert "e.key === '@'" in html
+    assert "e.key === '$'" in html
+    assert "_pendingACTag = 'agent'" in html
+    assert "_pendingACTag = 'skill'" in html
+
+    # input handler must consume the flag
+    assert "if (_pendingACTag)" in html
+    assert 'showAC(_pendingACTag)' in html
+    assert "_pendingACTag = null" in html
+
+    # fallback: InputEvent.data
+    assert "e.data === '@'" in html
+    assert "e.data === '$'" in html
+
+    # last resort: cursor-1 check
+    assert "prevChar === '@'" in html
+    assert "prevChar === '$'" in html
+
+    # modifiers MUST NOT block @/$ (they require Shift on US keyboards)
+    func_start = html.find("function onInputKey")
+    func_end = html.find("        }", func_start + 200)
+    func_body = html[func_start:func_end]
+    assert "!e.shiftKey" not in func_body, \
+        "onInputKey must not filter by shiftKey — @ and $ require Shift"

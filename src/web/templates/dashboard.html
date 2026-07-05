@@ -980,6 +980,19 @@
             const dd = document.getElementById('ac-dropdown');
             const isOpen = dd.classList.contains('active');
 
+            // On keydown, if @ or $ was pressed, set a flag for the input handler.
+            // keydown fires before the value changes, so we can't check value here,
+            // but we CAN check e.key reliably.  Note: @/$ require Shift on US
+            // keyboards, so we do NOT filter by shiftKey — e.key already resolves
+            // the character.
+            if (!isOpen && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                if (e.key === '@') {
+                    _pendingACTag = 'agent';
+                } else if (e.key === '$') {
+                    _pendingACTag = 'skill';
+                }
+            }
+
             if (isOpen) {
                 const list = document.getElementById('ac-list');
                 const items = list.querySelectorAll('.ac-item');
@@ -1025,14 +1038,16 @@
             }
         }
 
+        // Track which @/$ key was pressed (set in keydown, consumed in input)
+        let _pendingACTag = null;
+
         document.getElementById('chat-input').addEventListener('input', function(e) {
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 120) + 'px';
             const dd = document.getElementById('ac-dropdown');
-            const cursor = this.selectionStart;
-            const char = cursor > 0 ? this.value[cursor - 1] : '';
 
             if (dd.classList.contains('active')) {
+                const cursor = this.selectionStart;
                 const text = this.value.slice(0, cursor);
                 if (!text.match(/[@$]/)) {
                     hideAC();
@@ -1040,11 +1055,25 @@
                 }
                 updateACFilter();
                 renderACList();
-            } else if (char === '@' && !dd.classList.contains('active')) {
-                showAC('agent');
-            } else if (char === '$' && !dd.classList.contains('active')) {
-                showAC('skill');
+                return;
             }
+
+            // Consume flag set by keydown (most reliable across browsers)
+            if (_pendingACTag) {
+                showAC(_pendingACTag);
+                _pendingACTag = null;
+                return;
+            }
+
+            // Fallback: detect via InputEvent.data
+            if (e && e.data === '@') { showAC('agent'); return; }
+            if (e && e.data === '$') { showAC('skill'); return; }
+
+            // Last-resort: check character at cursor-1
+            const cursor = this.selectionStart;
+            const prevChar = cursor > 0 ? this.value[cursor - 1] : '';
+            if (prevChar === '@') { showAC('agent'); return; }
+            if (prevChar === '$') { showAC('skill'); return; }
         });
 
         // ─── New Chat ───
