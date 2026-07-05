@@ -25,10 +25,10 @@ case "$ACTION" in
     echo "=== Caffeinate ==="
     launchctl list | grep saratthya.caffeinate || echo "  not running"
     echo "=== URL ==="
-    echo "  https://saratthya-agentic.nport.link"
+    echo "  https://saratthya-agentic-app.nport.link"
     ;;
   url)
-    echo "https://saratthya-agentic.nport.link"
+    echo "https://saratthya-agentic-app.nport.link"
     ;;
   restart)
     "$0" stop

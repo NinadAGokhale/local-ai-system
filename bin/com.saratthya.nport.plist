@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.saratthya.nport</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/node</string>
+        <string>/opt/homebrew/bin/nport</string>
+        <string>5002</string>
+        <string>-s</string>
+        <string>saratthya-agentic-app</string>
+        <string>--language</string>
+        <string>en</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+    <key>StandardOutPath</key>
+    <string>/Users/ninadgokhale/Desktop/local-ai-system/logs/nport.stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/ninadgokhale/Desktop/local-ai-system/logs/nport.stderr.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>TUNNEL_DNS_RESOLVER_ADDRS</key>
+        <string>1.1.1.1:53</string>
+    </dict>
+</dict>
+</plist>
