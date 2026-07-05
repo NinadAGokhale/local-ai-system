@@ -201,3 +201,50 @@ def test_session_manager_user_isolation():
     sm.new_conversation("user-a")
     assert len(sm.get_or_create("user-a").conversations) == 1
     assert len(sm.get_or_create("user-b").conversations) == 0
+
+
+def test_toggle_pin_conversation():
+    sm = _test_sm()
+    sm.add_to_history("+1", "user", "pin me")
+    sm.new_conversation("+1")
+    s = sm.get_or_create("+1")
+    conv_id = s.conversations[0]["id"]
+    assert s.conversations[0].get("pinned") != True
+
+    convs = sm.toggle_pin_conversation("+1", conv_id)
+    assert s.conversations[0]["pinned"] is True
+
+    convs = sm.toggle_pin_conversation("+1", conv_id)
+    assert s.conversations[0]["pinned"] is False
+
+
+def test_rename_conversation():
+    sm = _test_sm()
+    sm.add_to_history("+1", "user", "original name")
+    sm.new_conversation("+1")
+    s = sm.get_or_create("+1")
+    conv_id = s.conversations[0]["id"]
+
+    convs = sm.rename_conversation("+1", conv_id, "Renamed Chat")
+    assert s.conversations[0]["title"] == "Renamed Chat"
+
+    convs = sm.rename_conversation("+1", conv_id, "")
+    assert s.conversations[0]["title"] == "Untitled"
+
+    long_title = "x" * 100
+    convs = sm.rename_conversation("+1", conv_id, long_title)
+    assert len(s.conversations[0]["title"]) == 80
+
+
+def test_pinned_shows_in_get_conversations():
+    sm = _test_sm()
+    sm.add_to_history("+1", "user", "pinned chat")
+    sm.new_conversation("+1")
+    s = sm.get_or_create("+1")
+    conv_id = s.conversations[0]["id"]
+    sm.toggle_pin_conversation("+1", conv_id)
+
+    convs = sm.get_conversations("+1")
+    pinned = [c for c in convs if c["id"] == conv_id]
+    assert len(pinned) == 1
+    assert pinned[0]["pinned"] is True
