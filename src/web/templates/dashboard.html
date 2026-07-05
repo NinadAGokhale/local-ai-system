@@ -1270,24 +1270,40 @@
         }
 
         // ─── Model list ───
+        function modelOptionHtml(id, label, emoji, desc) {
+            const e = emoji || '🤖';
+            const title = desc ? `title="${escHtml(desc)}"` : '';
+            return `<option value="${id}" ${title}>${e} ${escHtml(label)}</option>`;
+        }
+
+        function providerOptgroup(label, models, running) {
+            let h = `<optgroup label="${label}">`;
+            if (!running) {
+                h += `<option disabled>Server not running</option>`;
+            } else if (models && models.length) {
+                models.forEach(m => h += modelOptionHtml(m.id, m.name, m.emoji, m.desc));
+            } else {
+                h += `<option disabled>No models installed</option>`;
+            }
+            h += '</optgroup>';
+            return h;
+        }
+
         async function loadModels() {
             try {
                 const r = await fetch('/api/models');
                 const data = await r.json();
                 const select = document.getElementById('model-select');
-                let html = '<optgroup label="└ Ollama (local)">';
-                if (data.ollama_models && data.ollama_models.length) {
-                    html += data.ollama_models.map(m =>
-                        `<option value="ollama/${m}">${m}</option>`
-                    ).join('');
-                }
-                html += '</optgroup><optgroup label="└ Opencode (cloud)">';
-                if (data.opencode_models && data.opencode_models.length) {
-                    html += data.opencode_models.map(m =>
-                        `<option value="${m.id}">${m.name}</option>`
-                    ).join('');
-                }
-                html += '</optgroup>';
+                let html = '';
+                html += providerOptgroup('└ Ollama (local)',
+                    data.ollama_models.map(m => ({id:`ollama/${m}`, name:m, emoji:null, desc:null})),
+                    data.ollama_up);
+                html += providerOptgroup('└ MLX (Apple Silicon)',
+                    data.mlx_models || [],
+                    data.mlx_up);
+                html += providerOptgroup('└ Opencode (cloud)',
+                    (data.opencode_models || []).map(m => ({id:m.id, name:m.name, emoji:m.emoji, desc:m.desc})),
+                    true);
                 select.innerHTML = html;
             } catch(e) {}
         }

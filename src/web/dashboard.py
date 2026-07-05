@@ -317,26 +317,48 @@ def api_set_skill():
 
 @app.route("/api/models")
 def api_models():
+    ollama_models = []
     try:
         result = subprocess.run(
             ["ollama", "list"],
             capture_output=True, text=True, timeout=10
         )
-        ollama_models = []
         for line in result.stdout.strip().split("\n")[1:]:
             parts = line.split()
             if parts:
                 ollama_models.append(parts[0])
-    except Exception as e:
-        ollama_models = []
+        ollama_up = True
+    except Exception:
+        ollama_up = False
 
     opencode_models = [
-        {"id": "opencode/deepseek-v4-flash-free", "name": "DeepSeek V4 Flash (opencode cloud)"},
+        {"id": "opencode/deepseek-v4-flash-free", "name": "DeepSeek V4 Flash", "emoji": "☁️", "desc": "Cloud-hosted — best quality, requires internet"},
     ]
+
+    mlx_models = []
+    mlx_up = False
+    try:
+        from src.core.mlx_wrapper import is_server_running, list_cached_models, get_model_meta
+        mlx_up = is_server_running()
+        for repo_id in list_cached_models():
+            short = repo_id.split("/", 1)[-1]
+            mid = f"mlx/{short}"
+            meta = get_model_meta(mid)
+            mlx_models.append({
+                "id": mid,
+                "name": meta["label"],
+                "emoji": meta["emoji"],
+                "desc": meta["desc"],
+            })
+    except Exception:
+        pass
 
     return jsonify({
         "ollama_models": ollama_models,
+        "ollama_up": ollama_up,
         "opencode_models": opencode_models,
+        "mlx_models": mlx_models,
+        "mlx_up": mlx_up,
     })
 
 

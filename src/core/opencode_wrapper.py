@@ -23,7 +23,7 @@ NO_TOOLS_PROMPT = (
 
 
 def _strip_prefix(model: str) -> str:
-    for prefix in ("ollama/", "openai/"):
+    for prefix in ("ollama/", "mlx/", "openai/"):
         if model.startswith(prefix):
             return model[len(prefix):]
     return model
@@ -202,13 +202,45 @@ def run_opencode_cli(command: str, model: str = DEFAULT_MODEL) -> str:
 def run_opencode(command: str, model: str = DEFAULT_MODEL) -> str:
     """Route to appropriate backend based on model prefix.
     ollama/* -> direct Ollama API (fast, no tools)
+    mlx/*    -> MLX server on Apple Silicon (OpenAI-compatible API)
     opencode/* -> opencode CLI (skills + tools available)
     """
     if not model:
         model = DEFAULT_MODEL
     if model.startswith("opencode/"):
         return run_opencode_cli(command, model)
+    if model.startswith("mlx/"):
+        return run_mlx(command, model)
     return run_ollama(command, model)
+
+
+def run_mlx(command: str, model: str) -> str:
+    """Call MLX server's OpenAI-compatible API."""
+    from src.core.mlx_wrapper import MLX_HOST, MLX_PORT, parse_mlx_model_id
+
+    repo_id = parse_mlx_model_id(model) or model
+    payload = json.dumps({
+        "model": repo_id,
+        "messages": [{"role": "user", "content": command}],
+        "stream": False,
+    }).encode()
+
+    try:
+        req = urllib.request.Request(
+            f"{MLX_HOST}:{MLX_PORT}/v1/chat/completions",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        resp = urllib.request.urlopen(req, timeout=TIMEOUT)
+        data = json.loads(resp.read().decode())
+        return data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        return f"Error: MLX returned {e.code} — {body[:200]}"
+    except urllib.error.URLError as e:
+        return f"Error: Cannot reach MLX at {MLX_HOST}:{MLX_PORT} — {e.reason}"
+    except Exception as e:
+        return f"Error: {e}"
 
 
 def strip_ansi(text: str) -> str:
