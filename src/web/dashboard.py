@@ -15,6 +15,7 @@ from src.core.session_manager import SessionManager
 from src.core.handler import handle_message, set_shared_session_manager
 from src.core.content_loader import get_skill_content, get_agent_content, get_persona_content
 import traceback
+import re as _re
 import werkzeug.exceptions
 
 _DOT_ENV = os.path.join(os.path.dirname(__file__), '.env')
@@ -76,12 +77,30 @@ def _web_phone():
 
 ADMIN_EMAIL = os.environ.get("SARATTHYA_ADMIN_EMAIL", "ninad@localhost")
 REQUESTS_FILE = Path(PROJECT_ROOT) / "logs" / "access_requests.jsonl"
+_ENV_FILE = os.path.join(os.path.dirname(__file__), ".env")
+
+
+def _generate_username(email: str, name: str) -> str:
+    """Generate a username from email (part before @, alphanumeric only)."""
+    local = email.split("@")[0].lower()
+    username = _re.sub(r"[^a-z0-9]", "", local)
+    if not username:
+        username = _re.sub(r"[^a-z0-9]", "", name.lower())[:20] or "user"
+    # Ensure unique
+    base = username
+    n = 2
+    while username in USERS:
+        username = f"{base}{n}"
+        n += 1
+    return username
 
 
 @app.route("/request", methods=["GET", "POST"])
 def request_access():
     error = None
     ok = False
+    created_username = None
+    created_password = None
     if request.method == "POST":
         try:
             data = request.get_json(silent=True) or {}
@@ -99,11 +118,28 @@ def request_access():
                 REQUESTS_FILE.parent.mkdir(parents=True, exist_ok=True)
                 with open(REQUESTS_FILE, "a") as f:
                     f.write(json.dumps(entry) + "\n")
-                # Try sending email notification to admin
+
+                # Auto-create user credentials
+                username = _generate_username(email, name)
+                password = f"saratthya{username}072026"
+                env_key = f"SARATTHYA_{username.upper()}_PASSWORD"
+
+                # Append to .env
+                with open(_ENV_FILE, "a") as f:
+                    f.write(f"{env_key}={password}\n")
+
+                # Add to running server's environment
+                os.environ[env_key] = password
+                USERS[username] = password
+
+                created_username = username
+                created_password = password
+
+                # Try sending email notification to admin with credentials
                 try:
                     subprocess.run(
-                        ["mail", "-s", f"Saratthya Access Request: {name}", ADMIN_EMAIL],
-                        input=f"Name: {name}\nEmail: {email}\nReason: {reason or 'N/A'}".encode(),
+                        ["mail", "-s", f"Saratthya Access: {name} created as '{username}'", ADMIN_EMAIL],
+                        input=f"Name: {name}\nEmail: {email}\nUsername: {username}\nPassword: {password}\n---\nReason: {reason or 'N/A'}".encode(),
                         timeout=10,
                     )
                 except Exception:
@@ -111,7 +147,23 @@ def request_access():
             except Exception as e:
                 error = f"Failed to save request: {e}"
             ok = True
-    return render_template("request.html", error=error, ok=ok)
+    return render_template("request.html", error=error, ok=ok, created_username=created_username, created_password=created_password)
+
+
+@app.route("/api/access/users")
+@login_required
+def api_access_users():
+    users = []
+    if os.path.exists(_ENV_FILE):
+        for line in open(_ENV_FILE):
+            line = line.strip()
+            if "=" not in line or line.startswith("#"):
+                continue
+            key, val = line.split("=", 1)
+            if key.startswith("SARATTHYA_") and key.endswith("_PASSWORD"):
+                username = key[len("SARATTHYA_"):-len("_PASSWORD")].lower()
+                users.append({"username": username, "password": val})
+    return jsonify({"users": users, "total": len(users)})
 
 
 @app.route("/login", methods=["GET", "POST"])
