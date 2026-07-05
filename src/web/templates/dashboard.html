@@ -770,7 +770,7 @@
         let allAgents = [];
         let allSkills = [];
         let currentAgent = {{ current_agent|tojson|safe }};
-        let currentSkill = {{ current_skill|tojson|safe }};
+        let currentSkills = {{ current_skills|tojson|safe }};
         let acMode = null; // 'agent' or 'skill'
         let acFilter = '';
 
@@ -805,7 +805,7 @@
                 const data = await r.json();
                 renderMessages(data.history);
                 if (data.current_agent) setModeAgent(data.current_agent);
-                if (data.current_skill) setModeSkill(data.current_skill);
+                if (data.current_skills) data.current_skills.forEach(s => setModeSkill(s));
                 await loadConversations();
             } catch(e) { console.error('Switch conv error:', e); }
         }
@@ -912,8 +912,10 @@
             if (currentAgent) {
                 html += `<span class="mode-chip agent-chip">@${escHtml(currentAgent)} <span class="remove-mode" onclick="clearAgent(event)">&times;</span></span>`;
             }
-            if (currentSkill) {
-                html += `<span class="mode-chip skill-chip">$${escHtml(currentSkill)} <span class="remove-mode" onclick="clearSkill(event)">&times;</span></span>`;
+            if (currentSkills && currentSkills.length) {
+                currentSkills.forEach(sk => {
+                    html += `<span class="mode-chip skill-chip">$${escHtml(sk)} <span class="remove-mode" onclick="clearSkill(event, '${escHtml(sk)}')">&times;</span></span>`;
+                });
             }
             bar.innerHTML = html;
         }
@@ -940,7 +942,11 @@
         }
 
         function setModeSkill(name) {
-            currentSkill = name;
+            if (currentSkills.includes(name)) {
+                currentSkills = currentSkills.filter(s => s !== name);
+            } else {
+                currentSkills.push(name);
+            }
             renderModeBar();
             fetch('/api/skill', {
                 method: 'POST',
@@ -949,14 +955,14 @@
             }).catch(() => {});
         }
 
-        function clearSkill(e) {
+        function clearSkill(e, name) {
             e.stopPropagation();
-            currentSkill = null;
+            currentSkills = currentSkills.filter(s => s !== name);
             renderModeBar();
             fetch('/api/skill', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({skill: null}),
+                body: JSON.stringify({skill: name}),
             }).catch(() => {});
         }
 

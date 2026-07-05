@@ -14,7 +14,7 @@ class Session:
         self.conversations: list[dict] = []
         self.current_model: str = DEFAULT_MODEL
         self.current_agent: Optional[str] = None
-        self.current_skill: Optional[str] = None
+        self.current_skills: list[str] = []
         self.last_command: Optional[str] = None
         self.context_files: list[str] = []
 
@@ -25,7 +25,7 @@ class Session:
             "conversations": self.conversations[-50:],
             "current_model": self.current_model,
             "current_agent": self.current_agent,
-            "current_skill": self.current_skill,
+            "current_skills": self.current_skills,
             "last_command": self.last_command,
             "context_files": self.context_files,
         }
@@ -37,7 +37,7 @@ class Session:
         s.conversations = data.get("conversations", [])
         s.current_model = data.get("current_model", DEFAULT_MODEL)
         s.current_agent = data.get("current_agent")
-        s.current_skill = data.get("current_skill")
+        s.current_skills = data.get("current_skills", [])
         s.last_command = data.get("last_command")
         s.context_files = data.get("context_files", [])
         return s
@@ -125,16 +125,30 @@ class SessionManager:
         session.current_agent = agent
         self._save()
 
-    def set_skill(self, phone: str, skill: Optional[str]):
+    def toggle_skill(self, phone: str, skill: str):
+        """Add skill to list if not present, remove if already present."""
         session = self.get_or_create(phone)
-        session.current_skill = skill
+        if skill in session.current_skills:
+            session.current_skills = [s for s in session.current_skills if s != skill]
+        else:
+            session.current_skills.append(skill)
+        self._save()
+
+    def set_skills(self, phone: str, skills: list[str]):
+        session = self.get_or_create(phone)
+        session.current_skills = skills
+        self._save()
+
+    def clear_skills(self, phone: str):
+        session = self.get_or_create(phone)
+        session.current_skills = []
         self._save()
 
     def get_current_agent(self, phone: str) -> Optional[str]:
         return self.get_or_create(phone).current_agent
 
-    def get_current_skill(self, phone: str) -> Optional[str]:
-        return self.get_or_create(phone).current_skill
+    def get_current_skills(self, phone: str) -> list[str]:
+        return list(self.get_or_create(phone).current_skills)
 
     def _load(self):
         if os.path.exists(SESSION_FILE):

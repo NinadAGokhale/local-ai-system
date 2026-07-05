@@ -102,7 +102,7 @@ def index():
         conversations=conversations,
         current_history=s.history,
         current_agent=s.current_agent,
-        current_skill=s.current_skill,
+        current_skills=s.current_skills,
         username=session.get("username", "user"),
     ))
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -238,13 +238,12 @@ def api_chat():
 
     s = session_manager.get_or_create(phone)
 
-    # Apply active mode prefix — support both simultaneously
-    if s.current_skill and s.current_agent:
-        message = f"skill: {s.current_skill}: agent: {s.current_agent}: {message}"
-    elif s.current_skill:
-        message = f"skill: {s.current_skill}: {message}"
-    elif s.current_agent:
+    # Prefix message so parse_command detects agent/skill mode.
+    # Handler reads session.current_skills and session.current_agent directly.
+    if s.current_agent:
         message = f"agent: {s.current_agent}: {message}"
+    elif s.current_skills:
+        message = f"skill: {s.current_skills[0]}: {message}"
 
     session_manager.add_to_history(phone, "user", data["message"])
 
@@ -295,11 +294,15 @@ def api_set_agent():
 
 @app.route("/api/skill", methods=["POST"])
 def api_set_skill():
+    """Toggle a skill on/off. POST with skill='name' adds it; without removes all."""
     data = request.get_json() or {}
     phone = data.get("phone") or _web_phone()
-    skill = data.get("skill") or None
-    session_manager.set_skill(phone, skill)
-    return jsonify({"ok": True, "current_skill": skill})
+    skill = data.get("skill")
+    if skill:
+        session_manager.toggle_skill(phone, skill)
+    else:
+        session_manager.clear_skills(phone)
+    return jsonify({"ok": True, "current_skills": session_manager.get_current_skills(phone)})
 
 
 @app.route("/api/models")
@@ -362,12 +365,10 @@ def api_debug_resolve():
     s = session_manager.get_or_create(phone)
     original = message
 
-    if s.current_skill and s.current_agent:
-        message = f"skill: {s.current_skill}: agent: {s.current_agent}: {message}"
-    elif s.current_skill:
-        message = f"skill: {s.current_skill}: {message}"
-    elif s.current_agent:
+    if s.current_agent:
         message = f"agent: {s.current_agent}: {message}"
+    elif s.current_skills:
+        message = f"skill: {s.current_skills[0]}: {message}"
 
     cmd_type, cleaned_text, resolved_model = parse_command(message)
     if model_override:
@@ -382,44 +383,16 @@ def api_debug_resolve():
         "cleaned_text": cleaned_text,
         "resolved_model": resolved_model,
         "session_agent": s.current_agent,
-        "session_skill": s.current_skill,
+        "session_skills": s.current_skills,
+        "skill_names": list(s.current_skills),
     }
 
-    if cmd_type.value == "skill":
-        import re as _re
-        _m1 = _re.match(r'^(\S+?):\s*agent:\s*(\S+?):\s*(.*)', cleaned_text, _re.DOTALL)
-        if _m1:
-            sk, ag, tk = _m1.groups()
-            sc = get_skill_content(sk)
-            ag = AGENT_ALIASES.get(ag, ag)
-            ac = get_agent_content(ag)
-            info["skill_name"] = sk
-            info["skill_content_chars"] = len(sc)
-            info["skill_content_excerpt"] = sc[:200] if sc else ""
-            info["agent_name"] = ag
-            info["agent_content_chars"] = len(ac)
-            info["agent_content_excerpt"] = ac[:200] if ac else ""
-            info["_will_call"] = "execute_agent (combined)"
-            info["_ollama_agent_has_content"] = bool(ac)
-        else:
-            _m2 = _re.match(r'^(\S+?):\s*(.*)', cleaned_text, _re.DOTALL)
-            if _m2:
-                sk, tk = _m2.groups()
-                sc = get_skill_content(sk)
-                info["skill_name"] = sk
-                info["skill_content_chars"] = len(sc)
-                info["skill_content_excerpt"] = sc[:200] if sc else ""
-                info["_will_call"] = "run_opencode (skill-only)"
-                if resolved_model and resolved_model.startswith("ollama/"):
-                    info["_will_call"] = "run_ollama (skill-only)"
-
-    elif cmd_type.value == "agent":
+    if cmd_type.value == "agent":
         parts = cleaned_text.strip().split(maxsplit=1)
         if parts:
             an = parts[0].lower().rstrip(":")
             an = AGENT_ALIASES.get(an, an)
             ac = get_agent_content(an)
-            info["agent_content_excerpt"] = ac[:200] if ac else ""
             info["agent_name"] = an
             info["agent_content_chars"] = len(ac)
             info["agent_content_excerpt"] = ac[:200] if ac else ""
@@ -428,6 +401,34 @@ def api_debug_resolve():
                 info["_ollama_agent_has_content"] = bool(ac)
             else:
                 info["_will_call"] = "run_agent (opencode CLI)"
+            # Show skills that will be injected alongside the agent
+            extra_skills = s.current_skills
+            skill_sizes = {sk: len(get_skill_content(sk)) for sk in extra_skills}
+            info["extra_skills"] = {sk: f"{sz}c" for sk, sz in skill_sizes.items() if sz > 0}
+
+    elif cmd_type.value == "skill":
+        import re as _re
+        _m = _re.match(r'^(\S+?):\s*(.*)', cleaned_text, _re.DOTALL)
+        if _m:
+            sk, tk = _m.groups()
+            sc = get_skill_content(sk)
+            info["skill_name"] = sk
+            info["skill_content_chars"] = len(sc)
+            info["skill_content_excerpt"] = sc[:200] if sc else ""
+            # Show all session skills
+            extra_skills = [sk] + [s for s in s.current_skills if s != sk]
+            skill_sizes = {sk: len(get_skill_content(sk)) for sk in extra_skills}
+            info["extra_skills"] = {sk: f"{sz}c" for sk, sz in skill_sizes.items() if sz > 0}
+            if s.current_agent:
+                info["_will_call"] = "execute_agent (agent+skills)"
+                an = AGENT_ALIASES.get(s.current_agent, s.current_agent)
+                ac = get_agent_content(an)
+                info["agent_name"] = an
+                info["agent_content_chars"] = len(ac)
+            elif resolved_model and resolved_model.startswith("ollama/"):
+                info["_will_call"] = "run_ollama (skills-only)"
+            else:
+                info["_will_call"] = "run_opencode (skills-only)"
 
     return jsonify(info)
 
