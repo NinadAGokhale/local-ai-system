@@ -108,7 +108,11 @@ def _handle_message(phone: str, text: str, model_override: Optional[str] = None)
                     result = run_opencode(_prompt, model=model)
 
     if result is None:
-        result = run_opencode(cleaned_text, model=model)
+        if session_persona and persona_content:
+            prompt = _build_prompt("", "", [], cleaned_text, persona_name=session_persona, persona_content=persona_content)
+            result = run_opencode(prompt, model=model)
+        else:
+            result = run_opencode(cleaned_text, model=model)
     formatted = format_response(result, full=phone == "web-ui")
 
     return formatted

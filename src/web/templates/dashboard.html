@@ -1016,8 +1016,9 @@
                 });
                 const data = await r.json();
                 renderMessages(data.history);
-                if (data.current_agent) setModeAgent(data.current_agent);
-                if (data.current_persona) setPersona(data.current_persona);
+                if (data.current_agent) { currentAgent = data.current_agent; renderModeBar(); }
+                if (data.current_persona) { currentPersona = data.current_persona; renderModeBar(); }
+                if (!data.current_persona && currentPersona) { currentPersona = null; renderModeBar(); }
                 if (data.current_skills) data.current_skills.forEach(s => setModeSkill(s));
                 await loadConversations();
             } catch(e) { console.error('Switch conv error:', e); }
